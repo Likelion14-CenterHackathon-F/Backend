@@ -2,7 +2,7 @@ package com.centerton.centerton.domain.consultation.service;
 
 import com.centerton.centerton.domain.consultation.config.AgoraProperties;
 import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCode;
-import com.centerton.centerton.domain.consultation.exception.ConsultationException;
+import com.centerton.centerton.global.exception.BaseException;
 import io.agora.media.RtcTokenBuilder2;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +37,7 @@ public class AgoraRtcTokenService {
         );
 
         if (token == null || token.isBlank()) {
-            throw new ConsultationException(
+            throw new BaseException(
                     ConsultationErrorCode.AGORA_TOKEN_ISSUE_FAILED
             );
         }
@@ -51,7 +51,7 @@ public class AgoraRtcTokenService {
     private void validateConfiguration() {
         if (isBlank(agoraProperties.getAppId())
                 || isBlank(agoraProperties.getAppCertificate())) {
-            throw new ConsultationException(
+            throw new BaseException(
                     ConsultationErrorCode.AGORA_CONFIGURATION_MISSING
             );
         }

@@ -12,10 +12,10 @@ import com.centerton.centerton.domain.consultation.dto.response.TranscriptionRes
 import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
 import com.centerton.centerton.domain.consultation.entity.SttAgentStatus;
 import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCode;
-import com.centerton.centerton.domain.consultation.exception.ConsultationException;
 import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
 import com.centerton.centerton.domain.consultation.repository.ConsultationSummaryRepository;
 import com.centerton.centerton.domain.consultation.repository.TranscriptSegmentRepository;
+import com.centerton.centerton.global.exception.BaseException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,7 +74,7 @@ public class ConsultationService {
                 ));
 
         if (session.isCompleted()) {
-            throw new ConsultationException(
+            throw new BaseException(
                     ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED
             );
         }
@@ -117,14 +117,14 @@ public class ConsultationService {
         ConsultationSession session = getSession(appointmentId);
 
         if (session.isCompleted()) {
-            throw new ConsultationException(
+            throw new BaseException(
                     ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED
             );
         }
 
         Integer agoraUid = session.getAgoraUid(request.role());
         if (agoraUid == null) {
-            throw new ConsultationException(
+            throw new BaseException(
                     ConsultationErrorCode.CONSULTATION_PARTICIPANTS_NOT_READY
             );
         }
@@ -145,12 +145,12 @@ public class ConsultationService {
     public TranscriptionRes startTranscription(Long appointmentId) {
         ConsultationSession session = sessionRepository
                 .findByAppointmentIdForUpdate(appointmentId)
-                .orElseThrow(() -> new ConsultationException(
+                .orElseThrow(() -> new BaseException(
                         ConsultationErrorCode.CONSULTATION_NOT_FOUND
                 ));
 
         if (session.isCompleted()) {
-            throw new ConsultationException(
+            throw new BaseException(
                     ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED
             );
         }
@@ -161,7 +161,7 @@ public class ConsultationService {
         }
 
         if (!session.isReadyForStt()) {
-            throw new ConsultationException(
+            throw new BaseException(
                     ConsultationErrorCode.CONSULTATION_PARTICIPANTS_NOT_READY
             );
         }
@@ -188,7 +188,7 @@ public class ConsultationService {
     public ConsultationEndRes end(Long appointmentId) {
         ConsultationSession session = sessionRepository
                 .findByAppointmentIdForUpdate(appointmentId)
-                .orElseThrow(() -> new ConsultationException(
+                .orElseThrow(() -> new BaseException(
                         ConsultationErrorCode.CONSULTATION_NOT_FOUND
                 ));
 
@@ -243,7 +243,7 @@ public class ConsultationService {
     private ConsultationSession getSession(Long appointmentId) {
         return sessionRepository
                 .findByAppointmentId(appointmentId)
-                .orElseThrow(() -> new ConsultationException(
+                .orElseThrow(() -> new BaseException(
                         ConsultationErrorCode.CONSULTATION_NOT_FOUND
                 ));
     }

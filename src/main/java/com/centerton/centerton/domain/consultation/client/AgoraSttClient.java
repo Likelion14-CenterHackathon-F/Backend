@@ -3,7 +3,6 @@ package com.centerton.centerton.domain.consultation.client;
 import com.centerton.centerton.domain.consultation.config.AgoraProperties;
 import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
 import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCode;
-import com.centerton.centerton.domain.consultation.exception.ConsultationException;
 import com.centerton.centerton.domain.consultation.service.AgoraRtcTokenService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;

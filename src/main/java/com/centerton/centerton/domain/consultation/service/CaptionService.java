@@ -8,9 +8,9 @@ import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
 import com.centerton.centerton.domain.consultation.entity.ParticipantRole;
 import com.centerton.centerton.domain.consultation.entity.TranscriptSegment;
 import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCode;
-import com.centerton.centerton.domain.consultation.exception.ConsultationException;
 import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
 import com.centerton.centerton.domain.consultation.repository.TranscriptSegmentRepository;
+import com.centerton.centerton.global.exception.BaseException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -119,7 +119,7 @@ public class CaptionService {
     private ConsultationSession getSession(Long appointmentId) {
         return sessionRepository
                 .findByAppointmentId(appointmentId)
-                .orElseThrow(() -> new ConsultationException(
+                .orElseThrow(() -> new BaseException(
                         ConsultationErrorCode.CONSULTATION_NOT_FOUND
                 ));
     }
@@ -129,7 +129,7 @@ public class CaptionService {
             Long requestedSessionId
     ) {
         if (!session.getSessionId().equals(requestedSessionId)) {
-            throw new ConsultationException(
+            throw new BaseException(
                     ConsultationErrorCode.CONSULTATION_SESSION_MISMATCH
             );
         }
@@ -142,9 +142,8 @@ public class CaptionService {
         try {
             return session.resolveParticipantRole(speakerAgoraUid);
         } catch (IllegalArgumentException exception) {
-            throw new ConsultationException(
-                    ConsultationErrorCode.INVALID_CAPTION_SPEAKER,
-                    exception
+            throw new BaseException(
+                    ConsultationErrorCode.INVALID_CAPTION_SPEAKER
             );
         }
     }
@@ -153,9 +152,8 @@ public class CaptionService {
         try {
             return Long.parseLong(value);
         } catch (NumberFormatException exception) {
-            throw new ConsultationException(
-                    ConsultationErrorCode.INVALID_CAPTION_IDENTIFIER,
-                    exception
+            throw new BaseException(
+                    ConsultationErrorCode.INVALID_CAPTION_IDENTIFIER
             );
         }
     }
@@ -172,9 +170,8 @@ public class CaptionService {
         try {
             return Integer.valueOf(value);
         } catch (NumberFormatException exception) {
-            throw new ConsultationException(
-                    ConsultationErrorCode.INVALID_CAPTION_IDENTIFIER,
-                    exception
+            throw new BaseException(
+                    ConsultationErrorCode.INVALID_CAPTION_IDENTIFIER
             );
         }
     }
