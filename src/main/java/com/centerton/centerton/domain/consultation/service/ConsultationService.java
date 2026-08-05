@@ -13,7 +13,6 @@ import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
 import com.centerton.centerton.domain.consultation.entity.SttAgentStatus;
 import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCode;
 import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
-import com.centerton.centerton.domain.consultation.repository.ConsultationSummaryRepository;
 import com.centerton.centerton.domain.consultation.repository.TranscriptSegmentRepository;
 import com.centerton.centerton.global.exception.BaseException;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +34,6 @@ public class ConsultationService {
 
     private final ConsultationSessionRepository sessionRepository;
     private final TranscriptSegmentRepository transcriptRepository;
-    private final ConsultationSummaryRepository summaryRepository;
     private final ConsultationJoinPolicy joinPolicy;
     private final AgoraRtcTokenService rtcTokenService;
     private final AgoraSttClient sttClient;
@@ -44,7 +42,6 @@ public class ConsultationService {
     public ConsultationService(
             ConsultationSessionRepository sessionRepository,
             TranscriptSegmentRepository transcriptRepository,
-            ConsultationSummaryRepository summaryRepository,
             ConsultationJoinPolicy joinPolicy,
             AgoraRtcTokenService rtcTokenService,
             AgoraSttClient sttClient,
@@ -52,7 +49,6 @@ public class ConsultationService {
     ) {
         this.sessionRepository = sessionRepository;
         this.transcriptRepository = transcriptRepository;
-        this.summaryRepository = summaryRepository;
         this.joinPolicy = joinPolicy;
         this.rtcTokenService = rtcTokenService;
         this.sttClient = sttClient;
@@ -230,12 +226,10 @@ public class ConsultationService {
                         session.getStartedAt(),
                         session.getEndedAt(),
                         session.getActualDurationSeconds(),
-                        transcriptRepository.existsByConsultationSessionSessionId(
-                                session.getSessionId()
-                        ),
-                        summaryRepository.existsByConsultationSessionSessionId(
-                                session.getSessionId()
-                        )
+                        transcriptRepository
+                                .existsByConsultationSessionSessionId(
+                                        session.getSessionId()
+                                )
                 ))
                 .toList();
     }
