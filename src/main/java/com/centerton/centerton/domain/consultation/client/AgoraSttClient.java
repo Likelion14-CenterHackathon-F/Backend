@@ -4,6 +4,7 @@ import com.centerton.centerton.domain.consultation.config.AgoraProperties;
 import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
 import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCode;
 import com.centerton.centerton.domain.consultation.service.AgoraRtcTokenService;
+import com.centerton.centerton.global.exception.BaseException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -39,7 +40,7 @@ public class AgoraSttClient {
 
     public String startAgent(ConsultationSession session) {
         if (!session.isReadyForStt()) {
-            throw new ConsultationException(
+            throw new BaseException(
                     ConsultationErrorCode.CONSULTATION_PARTICIPANTS_NOT_READY
             );
         }
@@ -84,20 +85,19 @@ public class AgoraSttClient {
             String agentId = extractAgentId(response);
 
             if (agentId == null || agentId.isBlank()) {
-                throw new ConsultationException(
+                throw new BaseException(
                         ConsultationErrorCode.STT_AGENT_START_FAILED
                 );
             }
 
             return agentId;
 
-        } catch (ConsultationException exception) {
+        } catch (BaseException exception) {
             throw exception;
 
         } catch (RestClientException exception) {
-            throw new ConsultationException(
-                    ConsultationErrorCode.STT_AGENT_START_FAILED,
-                    exception
+            throw new BaseException(
+                    ConsultationErrorCode.STT_AGENT_START_FAILED
             );
         }
     }
@@ -121,9 +121,8 @@ public class AgoraSttClient {
                     .toBodilessEntity();
 
         } catch (RestClientException exception) {
-            throw new ConsultationException(
-                    ConsultationErrorCode.STT_AGENT_START_FAILED,
-                    exception
+            throw new BaseException(
+                    ConsultationErrorCode.STT_AGENT_START_FAILED
             );
         }
     }
