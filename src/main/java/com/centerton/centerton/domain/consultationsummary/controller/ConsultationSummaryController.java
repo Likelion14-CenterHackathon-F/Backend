@@ -6,8 +6,10 @@ import com.centerton.centerton.domain.consultation.service.CaptionService;
 import com.centerton.centerton.domain.consultation.service.ConsultationService;
 import com.centerton.centerton.domain.consultationsummary.dto.SummaryLanguage;
 import com.centerton.centerton.domain.consultationsummary.dto.request.ConsultationSummaryCreateReq;
+import com.centerton.centerton.domain.consultationsummary.dto.request.InstructionCompletionReq;
 import com.centerton.centerton.domain.consultationsummary.dto.response.ConsultationSummaryDetailRes;
 import com.centerton.centerton.domain.consultationsummary.dto.response.ConsultationSummaryListRes;
+import com.centerton.centerton.domain.consultationsummary.dto.response.SummaryInstructionRes;
 import com.centerton.centerton.domain.consultationsummary.exception.ConsultationSummaryErrorCode;
 import com.centerton.centerton.domain.consultationsummary.service.ConsultationSummaryService;
 import com.centerton.centerton.global.exception.BaseException;
@@ -59,6 +61,21 @@ public class ConsultationSummaryController {
         return SuccessResponse.from(consultationSummaryService.getSummaries(
                 parseLanguage(language)
         ));
+    }
+
+    @PatchMapping("/{summaryId}/instructions/{instructionId}")
+    public SuccessResponse<SummaryInstructionRes> changeInstructionCompletion(
+            @PathVariable Long summaryId,
+            @PathVariable Long instructionId,
+            @Valid @RequestBody InstructionCompletionReq request
+    ) {
+        return SuccessResponse.from(
+                consultationSummaryService.changeInstructionCompletion(
+                        summaryId,
+                        instructionId,
+                        request.patientCompleted()
+                )
+        );
     }
 
     private SummaryLanguage parseLanguage(String value) {
