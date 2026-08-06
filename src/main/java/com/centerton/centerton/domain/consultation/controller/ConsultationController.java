@@ -12,14 +12,9 @@ import com.centerton.centerton.domain.consultation.dto.response.TokenRes;
 import com.centerton.centerton.domain.consultation.dto.response.TranscriptionRes;
 import com.centerton.centerton.domain.consultation.service.CaptionService;
 import com.centerton.centerton.domain.consultation.service.ConsultationService;
+import com.centerton.centerton.global.response.SuccessResponse;
 import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -39,74 +34,74 @@ public class ConsultationController {
     }
 
     @PostMapping("/{appointmentId}/join")
-    public ResponseEntity<JoinConsultationRes> join(
+    public SuccessResponse<JoinConsultationRes> join(
             @PathVariable Long appointmentId,
             @Valid @RequestBody JoinConsultationReq request
     ) {
-        return ResponseEntity.ok(
+        return SuccessResponse.from(
                 consultationService.join(appointmentId, request)
         );
     }
 
     @PostMapping("/{appointmentId}/token/renew")
-    public ResponseEntity<TokenRes> renewToken(
+    public SuccessResponse<TokenRes> renewToken(
             @PathVariable Long appointmentId,
             @Valid @RequestBody TokenRenewReq request
     ) {
-        return ResponseEntity.ok(
+        return SuccessResponse.from(
                 consultationService.renewToken(appointmentId, request)
         );
     }
 
     @PostMapping("/{appointmentId}/transcription/start")
-    public ResponseEntity<TranscriptionRes> startTranscription(
+    public SuccessResponse<TranscriptionRes> startTranscription(
             @PathVariable Long appointmentId
     ) {
-        return ResponseEntity.ok(
+        return SuccessResponse.from(
                 consultationService.startTranscription(appointmentId)
         );
     }
 
     @GetMapping("/{appointmentId}/transcription/status")
-    public ResponseEntity<TranscriptionRes> getTranscriptionStatus(
+    public SuccessResponse<TranscriptionRes> getTranscriptionStatus(
             @PathVariable Long appointmentId
     ) {
-        return ResponseEntity.ok(
+        return SuccessResponse.from(
                 consultationService.getTranscriptionStatus(appointmentId)
         );
     }
 
     @PostMapping("/{appointmentId}/captions/batch")
-    public ResponseEntity<CaptionBatchRes> saveCaptionBatch(
+    public SuccessResponse<CaptionBatchRes> saveCaptionBatch(
             @PathVariable Long appointmentId,
             @Valid @RequestBody CaptionBatchReq request
     ) {
-        return ResponseEntity.ok(
+        return SuccessResponse.from(
                 captionService.saveBatch(appointmentId, request)
         );
     }
 
     @GetMapping("/{appointmentId}/captions")
-    public ResponseEntity<List<CaptionRes>> getCaptions(
+    public SuccessResponse<List<CaptionRes>> getCaptions(
             @PathVariable Long appointmentId
     ) {
-        return ResponseEntity.ok(
+        return SuccessResponse.from(
                 captionService.getCaptions(appointmentId)
         );
     }
 
     @PostMapping("/{appointmentId}/end")
-    public ResponseEntity<ConsultationEndRes> end(
+    public SuccessResponse<ConsultationEndRes> end(
             @PathVariable Long appointmentId
     ) {
-        return ResponseEntity.ok(
+        return SuccessResponse.from(
                 consultationService.end(appointmentId)
         );
     }
 
     @GetMapping("/history")
-    public ResponseEntity<List<ConsultationHistoryRes>> getHistory() {
-        return ResponseEntity.ok(
+    public SuccessResponse<List<ConsultationHistoryRes>> getHistory() {
+        return SuccessResponse.from(
                 consultationService.getHistory()
         );
     }
