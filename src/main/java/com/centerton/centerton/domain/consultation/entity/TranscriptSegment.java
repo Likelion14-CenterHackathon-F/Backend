@@ -1,5 +1,6 @@
 package com.centerton.centerton.domain.consultation.entity;
 
+import com.centerton.centerton.domain.consultation.entity.enums.ParticipantRole;
 import com.centerton.centerton.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -1,5 +1,8 @@
 package com.centerton.centerton.domain.consultation.entity;
 
+import com.centerton.centerton.domain.consultation.entity.enums.ConsultationSessionStatus;
+import com.centerton.centerton.domain.consultation.entity.enums.ParticipantRole;
+import com.centerton.centerton.domain.consultation.entity.enums.SttAgentStatus;
 import com.centerton.centerton.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,7 +18,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDateTime;
 

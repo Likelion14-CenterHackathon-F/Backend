@@ -5,7 +5,7 @@ import com.centerton.centerton.domain.consultation.dto.request.CaptionItemReq;
 import com.centerton.centerton.domain.consultation.dto.response.CaptionBatchRes;
 import com.centerton.centerton.domain.consultation.dto.response.CaptionRes;
 import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
-import com.centerton.centerton.domain.consultation.entity.ParticipantRole;
+import com.centerton.centerton.domain.consultation.entity.enums.ParticipantRole;
 import com.centerton.centerton.domain.consultation.entity.TranscriptSegment;
 import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCode;
 import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;

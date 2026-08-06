@@ -10,7 +10,7 @@ import com.centerton.centerton.domain.consultation.dto.response.JoinConsultation
 import com.centerton.centerton.domain.consultation.dto.response.TokenRes;
 import com.centerton.centerton.domain.consultation.dto.response.TranscriptionRes;
 import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
-import com.centerton.centerton.domain.consultation.entity.SttAgentStatus;
+import com.centerton.centerton.domain.consultation.entity.enums.SttAgentStatus;
 import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCode;
 import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
 import com.centerton.centerton.domain.consultation.repository.TranscriptSegmentRepository;

@@ -1,6 +1,6 @@
 package com.centerton.centerton.domain.consultation.dto.response;
 
-import com.centerton.centerton.domain.consultation.entity.ParticipantRole;
+import com.centerton.centerton.domain.consultation.entity.enums.ParticipantRole;
 
 import java.time.Instant;
 
