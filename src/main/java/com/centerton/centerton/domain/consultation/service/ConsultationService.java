@@ -10,15 +10,14 @@ import com.centerton.centerton.domain.consultation.dto.response.JoinConsultation
 import com.centerton.centerton.domain.consultation.dto.response.TokenRes;
 import com.centerton.centerton.domain.consultation.dto.response.TranscriptionRes;
 import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
-import com.centerton.centerton.domain.consultation.entity.enums.SttAgentStatus;
 import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCode;
 import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
 import com.centerton.centerton.domain.consultation.repository.TranscriptSegmentRepository;
 import com.centerton.centerton.global.exception.BaseException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClientException;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -27,7 +26,6 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@Transactional(readOnly = true)
 public class ConsultationService {
 
     private static final int RECOMMENDED_DURATION_SECONDS = 900;
@@ -35,6 +33,7 @@ public class ConsultationService {
     private final ConsultationSessionRepository sessionRepository;
     private final TranscriptSegmentRepository transcriptRepository;
     private final ConsultationJoinPolicy joinPolicy;
+    private final ConsultationTransactionService transactionService;
     private final AgoraRtcTokenService rtcTokenService;
     private final AgoraSttClient sttClient;
     private final AgoraProperties agoraProperties;
@@ -43,6 +42,7 @@ public class ConsultationService {
             ConsultationSessionRepository sessionRepository,
             TranscriptSegmentRepository transcriptRepository,
             ConsultationJoinPolicy joinPolicy,
+            ConsultationTransactionService transactionService,
             AgoraRtcTokenService rtcTokenService,
             AgoraSttClient sttClient,
             AgoraProperties agoraProperties
@@ -50,37 +50,58 @@ public class ConsultationService {
         this.sessionRepository = sessionRepository;
         this.transcriptRepository = transcriptRepository;
         this.joinPolicy = joinPolicy;
+        this.transactionService = transactionService;
         this.rtcTokenService = rtcTokenService;
         this.sttClient = sttClient;
         this.agoraProperties = agoraProperties;
     }
 
-    @Transactional
-    public JoinConsultationRes join(Long appointmentId, JoinConsultationReq request) {
+    /**
+     * 상담 세션 참여
+     *
+     * 이 메서드 자체에는 트랜잭션을 적용하지 않습니다.
+     * 세션 생성 및 참여자 등록은 ConsultationTransactionService의
+     * 짧은 트랜잭션에서 처리합니다.
+     */
+    public JoinConsultationRes join(
+            Long appointmentId,
+            JoinConsultationReq request
+    ) {
         joinPolicy.validateJoin(appointmentId);
 
-        ConsultationSession session = sessionRepository.findByAppointmentId(appointmentId)
-                .orElseGet(() -> ConsultationSession.create(
-                        appointmentId,
-                        generateChannelName(appointmentId)
-                ));
+        LocalDateTime joinedAt = nowUtc();
 
-        if (session.isCompleted()) {
-            throw new BaseException(ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED);
+        ConsultationSession session;
+
+        try {
+            session = transactionService.joinOrCreate(
+                    appointmentId,
+                    request,
+                    generateChannelName(appointmentId),
+                    joinedAt
+            );
+        } catch (DataIntegrityViolationException exception) {
+            /*
+             * 환자와 의료진이 동시에 처음 join한 경우:
+             *
+             * 1. 두 요청 모두 세션이 없다고 판단할 수 있음
+             * 2. 한 요청이 appointment_id unique insert에 성공
+             * 3. 다른 요청은 unique 충돌 발생
+             * 4. 이미 생성된 세션을 재조회해 참여자 등록
+             */
+            session = transactionService.joinExisting(
+                            appointmentId,
+                            request,
+                            joinedAt
+                    )
+                    .orElseThrow(() -> exception);
         }
 
-        session.registerParticipant(
-                request.role(),
-                request.agoraUid(),
-                request.userLanguage()
-        );
-        session.start(nowUtc());
-        sessionRepository.save(session);
-
-        AgoraRtcTokenService.IssuedRtcToken issuedToken = rtcTokenService.issuePublisherToken(
-                session.getRtcChannelName(),
-                request.agoraUid()
-        );
+        AgoraRtcTokenService.IssuedRtcToken issuedToken =
+                rtcTokenService.issuePublisherToken(
+                        session.getRtcChannelName(),
+                        request.agoraUid()
+                );
 
         return new JoinConsultationRes(
                 appointmentId,
@@ -99,98 +120,142 @@ public class ConsultationService {
         );
     }
 
-    public TokenRes renewToken(Long appointmentId, TokenRenewReq request) {
+    @Transactional(readOnly = true)
+    public TokenRes renewToken(
+            Long appointmentId,
+            TokenRenewReq request
+    ) {
         ConsultationSession session = getSession(appointmentId);
 
         if (session.isCompleted()) {
-            throw new BaseException(ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED);
+            throw new BaseException(
+                    ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED
+            );
         }
 
         Integer agoraUid = session.getAgoraUid(request.role());
+
         if (agoraUid == null) {
-            throw new BaseException(ConsultationErrorCode.CONSULTATION_PARTICIPANTS_NOT_READY);
+            throw new BaseException(
+                    ConsultationErrorCode.CONSULTATION_PARTICIPANTS_NOT_READY
+            );
         }
 
-        AgoraRtcTokenService.IssuedRtcToken issuedToken = rtcTokenService.issuePublisherToken(
-                session.getRtcChannelName(),
-                agoraUid
-        );
+        AgoraRtcTokenService.IssuedRtcToken issuedToken =
+                rtcTokenService.issuePublisherToken(
+                        session.getRtcChannelName(),
+                        agoraUid
+                );
 
-        return new TokenRes(issuedToken.token(), issuedToken.expiresAt());
+        return new TokenRes(
+                issuedToken.token(),
+                issuedToken.expiresAt()
+        );
     }
 
-    @Transactional
+    /**
+     * STT Agent 시작
+     *
+     * 1. 짧은 DB 트랜잭션에서 STARTING 저장 후 커밋
+     * 2. 트랜잭션 밖에서 Agora API 호출
+     * 3. 성공 또는 실패 상태를 새로운 트랜잭션으로 저장
+     */
     public TranscriptionRes startTranscription(Long appointmentId) {
-        ConsultationSession session = sessionRepository.findByAppointmentIdForUpdate(appointmentId)
-                .orElseThrow(() -> new BaseException(
-                        ConsultationErrorCode.CONSULTATION_NOT_FOUND
-                ));
+        ConsultationTransactionService.SttStartPreparation preparation =
+                transactionService.prepareSttStart(appointmentId);
 
-        if (session.isCompleted()) {
-            throw new BaseException(ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED);
+        /*
+         * 이미 다른 요청에서 STT를 시작 중이거나 실행 중이라면
+         * 새로운 Agora Agent를 생성하지 않고 현재 상태를 반환합니다.
+         */
+        if (!preparation.startRequired()) {
+            return toTranscriptionRes(preparation.session());
         }
-
-        if (session.isSttStartingOrRunning() && session.getSttAgentId() != null) {
-            return toTranscriptionRes(session);
-        }
-
-        if (!session.isReadyForStt()) {
-            throw new BaseException(ConsultationErrorCode.CONSULTATION_PARTICIPANTS_NOT_READY);
-        }
-
-        session.markSttStarting();
-        sessionRepository.saveAndFlush(session);
 
         try {
-            String agentId = sttClient.startAgent(session);
-            session.markSttRunning(agentId);
+            String sttAgentId =
+                    sttClient.startAgent(preparation.session());
+
+            ConsultationSession runningSession =
+                    transactionService.markSttRunning(
+                            appointmentId,
+                            sttAgentId
+                    );
+
+            return toTranscriptionRes(runningSession);
+
         } catch (RuntimeException exception) {
-            session.markSttFailed();
+            /*
+             * 실패 상태 저장 트랜잭션과 원래 Agora 예외를 분리합니다.
+             * FAILED 저장에 실패하더라도 최초 예외가 사라지지 않게
+             * suppressed exception으로 추가합니다.
+             */
+            try {
+                transactionService.markSttFailed(appointmentId);
+            } catch (RuntimeException statusSaveException) {
+                exception.addSuppressed(statusSaveException);
+            }
+
             throw exception;
         }
-
-        return toTranscriptionRes(session);
     }
 
+    @Transactional(readOnly = true)
     public TranscriptionRes getTranscriptionStatus(Long appointmentId) {
         return toTranscriptionRes(getSession(appointmentId));
     }
 
-    @Transactional
+    /**
+     * 상담 종료
+     *
+     * STT Agent 종료 실패가 상담 자체의 종료를 막지 않도록 처리합니다.
+     */
     public ConsultationEndRes end(Long appointmentId) {
-        ConsultationSession session = sessionRepository.findByAppointmentIdForUpdate(appointmentId)
-                .orElseThrow(() -> new BaseException(
-                        ConsultationErrorCode.CONSULTATION_NOT_FOUND
-                ));
+        ConsultationTransactionService.ConsultationEndPreparation preparation =
+                transactionService.prepareEnd(appointmentId);
 
-        if (session.isCompleted()) {
-            return toEndRes(session);
+        if (preparation.session().isCompleted()) {
+            return toEndRes(preparation.session());
         }
 
-        session.markCompleting();
+        boolean sttStopSucceeded = false;
 
-        if (session.getSttAgentId() != null
-                && session.getSttStatus() != SttAgentStatus.STOPPED) {
-            session.markSttStopping();
-
+        if (preparation.stopRequired()) {
             try {
-                sttClient.stopAgent(session.getSttAgentId());
-                session.markSttStopped();
-            } catch (RestClientException exception) {
-                session.markSttFailed();
+                /*
+                 * DB 트랜잭션 및 비관적 락이 없는 상태에서
+                 * Agora 외부 API를 호출합니다.
+                 */
+                sttClient.stopAgent(preparation.sttAgentId());
+                sttStopSucceeded = true;
+
+            } catch (BaseException exception) {
+                /*
+                 * STT Agent 종료에 실패해도 상담 종료는 계속합니다.
+                 * 이후 DB에는 STT FAILED + 상담 COMPLETED가 저장됩니다.
+                 */
                 log.warn(
-                        "Agora STT Agent 종료 실패. sessionId={}, agentId={}",
-                        session.getSessionId(),
-                        session.getSttAgentId(),
+                        "Agora STT Agent 종료 실패. "
+                                + "sessionId={}, agentId={}",
+                        preparation.session().getSessionId(),
+                        preparation.sttAgentId(),
                         exception
                 );
             }
         }
 
-        session.complete(nowUtc());
-        return toEndRes(session);
+        ConsultationSession completedSession =
+                transactionService.completeEnd(
+                        appointmentId,
+                        preparation.stopRequired(),
+                        sttStopSucceeded,
+                        nowUtc()
+                );
+
+        return toEndRes(completedSession);
     }
 
+    @Transactional(readOnly = true)
     public List<ConsultationHistoryRes> getHistory() {
         return sessionRepository.findAllByOrderByStartedAtDesc()
                 .stream()
@@ -200,9 +265,10 @@ public class ConsultationService {
                         session.getStartedAt(),
                         session.getEndedAt(),
                         session.getActualDurationSeconds(),
-                        transcriptRepository.existsByConsultationSessionSessionId(
-                                session.getSessionId()
-                        )
+                        transcriptRepository
+                                .existsByConsultationSessionSessionId(
+                                        session.getSessionId()
+                                )
                 ))
                 .toList();
     }
@@ -214,7 +280,9 @@ public class ConsultationService {
                 ));
     }
 
-    private TranscriptionRes toTranscriptionRes(ConsultationSession session) {
+    private TranscriptionRes toTranscriptionRes(
+            ConsultationSession session
+    ) {
         return new TranscriptionRes(
                 session.getSessionId(),
                 session.getSttAgentId(),
@@ -222,7 +290,9 @@ public class ConsultationService {
         );
     }
 
-    private ConsultationEndRes toEndRes(ConsultationSession session) {
+    private ConsultationEndRes toEndRes(
+            ConsultationSession session
+    ) {
         return new ConsultationEndRes(
                 session.getSessionId(),
                 session.getSessionStatus(),
@@ -236,7 +306,10 @@ public class ConsultationService {
         return "consultation_"
                 + appointmentId
                 + "_"
-                + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+                + UUID.randomUUID()
+                .toString()
+                .replace("-", "")
+                .substring(0, 12);
     }
 
     private LocalDateTime nowUtc() {
