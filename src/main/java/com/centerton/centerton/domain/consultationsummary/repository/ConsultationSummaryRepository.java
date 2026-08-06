@@ -1,6 +1,5 @@
 package com.centerton.centerton.domain.consultationsummary.repository;
 
-
 import com.centerton.centerton.domain.consultationsummary.entity.ConsultationSummary;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,7 +14,7 @@ public interface ConsultationSummaryRepository
     Optional<ConsultationSummary> findByConsultationSessionSessionId(Long sessionId);
 
     @EntityGraph(attributePaths = "instructions")
-    Optional<ConsultationSummary> findWithInstructionsBySummaryId(Long summaryId);
+    Optional<ConsultationSummary> findBySummaryId(Long summaryId);
 
     List<ConsultationSummary> findAllByOrderByConsultedAtDescSummaryIdDesc();
 }

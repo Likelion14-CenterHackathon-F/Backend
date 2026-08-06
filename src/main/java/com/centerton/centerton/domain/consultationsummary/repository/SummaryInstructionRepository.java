@@ -1,6 +1,5 @@
 package com.centerton.centerton.domain.consultationsummary.repository;
 
-
 import com.centerton.centerton.domain.consultationsummary.entity.SummaryInstruction;
 import org.springframework.data.jpa.repository.JpaRepository;
 
