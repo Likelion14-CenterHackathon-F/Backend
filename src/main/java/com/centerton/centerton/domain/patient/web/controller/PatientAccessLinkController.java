@@ -29,9 +29,7 @@ public class PatientAccessLinkController {
     ) {
         PatientAccessLinkCreateRes response = patientAccessLinkService.createAccessLink(patientId, request);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(SuccessResponse.created(response));
+        return ResponseEntity.status(HttpStatus.CREATED).body(SuccessResponse.created(response));
     }
 
     @PostMapping("/access-links/verify")

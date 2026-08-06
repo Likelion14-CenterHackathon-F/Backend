@@ -38,3 +38,7 @@ out/
 
 ### properties ###
 application-secret.properties
+
+### local tests ###
+src/test/java/com/centerton/centerton/domain/patient/service/PatientAccessLinkServiceImplTest.java
+src/test/java/com/centerton/centerton/global/jwt/JwtAuthenticationFilterTest.java
