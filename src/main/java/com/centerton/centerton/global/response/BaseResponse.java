@@ -1,7 +1,6 @@
 package com.centerton.centerton.global.response;
 
 
-
 import com.centerton.centerton.global.response.code.BaseResponseCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +18,15 @@ public class BaseResponse {
     private final String message;
     private final String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-    public static BaseResponse of(Boolean isSuccess, BaseResponseCode baseResponseCode){
+    public static BaseResponse of(Boolean isSuccess, BaseResponseCode baseResponseCode) {
         return new BaseResponse(isSuccess, baseResponseCode.getCode(), baseResponseCode.getMessage());
     }
-    public static BaseResponse of(Boolean isSuccess, BaseResponseCode baseResponseCode, String message){
+
+    public static BaseResponse of(Boolean isSuccess, BaseResponseCode baseResponseCode, String message) {
         return new BaseResponse(isSuccess, baseResponseCode.getCode(), message);
     }
-    public static BaseResponse of(Boolean isSuccess, String code, String message){
+
+    public static BaseResponse of(Boolean isSuccess, String code, String message) {
         return new BaseResponse(isSuccess, code, message);
     }
 }
