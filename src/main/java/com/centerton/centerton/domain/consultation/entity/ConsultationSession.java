@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @Getter
 @Entity
 @Table(
-        name = "CONSULTATION_SESSION",
+        name = "consultation_session",
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_consultation_session_appointment",

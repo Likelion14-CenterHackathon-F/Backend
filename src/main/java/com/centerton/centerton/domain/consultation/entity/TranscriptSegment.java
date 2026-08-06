@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 @Getter
 @Entity
 @Table(
-        name = "TRANSCRIPT_SEGMENT",
+        name = "transcript_segment",
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_transcript_session_sentence",
