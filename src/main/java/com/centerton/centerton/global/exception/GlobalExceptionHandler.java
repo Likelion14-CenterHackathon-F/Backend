@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import tools.jackson.databind.exc.InvalidFormatException;
 
 @RestControllerAdvice
 @Slf4j
@@ -42,6 +43,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse<?>> handleHttpMessageNotReadableException(HttpMessageNotReadableException e){
         log.error("HttpMessageNotReadableException : {}", e.getMessage(), e);
+
+        BaseException baseException = findBaseException(e);
+        if (baseException != null) {
+            ErrorResponse<?> errorResponse = ErrorResponse.from(baseException.getBaseResponseCode());
+            return ResponseEntity.status(errorResponse.getHttpStatus()).body(errorResponse);
+        }
+
+        if (isEnumInvalidError(e)) {
+            ErrorResponse<?> errorResponse = ErrorResponse.of(
+                    ErrorResponseCode.INVALID_HTTP_MESSAGE_BODY,
+                    "입력된 값이 유효하지 않습니다. Enum 타입의 철자나 대소문자를 다시 확인해주세요."
+            );
+            return ResponseEntity.status(errorResponse.getHttpStatus()).body(errorResponse);
+        }
+
         ErrorResponse<?> errorResponse = ErrorResponse.from(ErrorResponseCode.INVALID_HTTP_MESSAGE_BODY);
         return ResponseEntity.status(errorResponse.getHttpStatus()).body(errorResponse);
     }
@@ -102,5 +118,32 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(errorResponse.getHttpStatus()).body(errorResponse);
     }
 
+    private BaseException findBaseException(Throwable throwable) {
+        Throwable current = throwable;
+
+        while (current != null) {
+            if (current instanceof BaseException baseException) {
+                return baseException;
+            }
+            current = current.getCause();
+        }
+
+        return null;
+    }
+
+    private boolean isEnumInvalidError(Throwable throwable) {
+        Throwable current = throwable;
+
+        while (current != null) {
+            if (current instanceof InvalidFormatException invalidFormatException
+                    && invalidFormatException.getTargetType() != null
+                    && invalidFormatException.getTargetType().isEnum()) {
+                return true;
+            }
+            current = current.getCause();
+        }
+
+        return false;
+    }
 
 }
