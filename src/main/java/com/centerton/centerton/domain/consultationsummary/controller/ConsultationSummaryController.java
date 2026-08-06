@@ -7,12 +7,15 @@ import com.centerton.centerton.domain.consultation.service.ConsultationService;
 import com.centerton.centerton.domain.consultationsummary.dto.SummaryLanguage;
 import com.centerton.centerton.domain.consultationsummary.dto.request.ConsultationSummaryCreateReq;
 import com.centerton.centerton.domain.consultationsummary.dto.response.ConsultationSummaryDetailRes;
+import com.centerton.centerton.domain.consultationsummary.dto.response.ConsultationSummaryListRes;
 import com.centerton.centerton.domain.consultationsummary.exception.ConsultationSummaryErrorCode;
 import com.centerton.centerton.domain.consultationsummary.service.ConsultationSummaryService;
 import com.centerton.centerton.global.exception.BaseException;
 import com.centerton.centerton.global.response.SuccessResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/consultation-summaries")
@@ -45,6 +48,15 @@ public class ConsultationSummaryController {
     ) {
         return SuccessResponse.from(consultationSummaryService.getSummary(
                 summaryId,
+                parseLanguage(language)
+        ));
+    }
+
+    @GetMapping
+    public SuccessResponse<List<ConsultationSummaryListRes>> getSummaries(
+            @RequestParam(defaultValue = "KO") String language
+    ) {
+        return SuccessResponse.from(consultationSummaryService.getSummaries(
                 parseLanguage(language)
         ));
     }
