@@ -32,7 +32,7 @@ public class GeminiClient {
                 List.of(new GeminiContent(List.of(new GeminiPart(prompt)))),
                 new GeminiGenerationConfig(
                         0.2,
-                        1024,
+                        2048,
                         "application/json",
                         responseSchema()
                 )
