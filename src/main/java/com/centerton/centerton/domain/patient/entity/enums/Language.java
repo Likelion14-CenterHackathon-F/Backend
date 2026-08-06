@@ -1,4 +1,4 @@
-package com.centerton.centerton.domain.patient.enums;
+package com.centerton.centerton.domain.patient.entity.enums;
 
 import com.centerton.centerton.domain.patient.exception.LanguageInvalidException;
 import com.fasterxml.jackson.annotation.JsonCreator;

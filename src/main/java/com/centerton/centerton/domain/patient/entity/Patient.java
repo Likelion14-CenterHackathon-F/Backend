@@ -1,6 +1,6 @@
 package com.centerton.centerton.domain.patient.entity;
 
-import com.centerton.centerton.domain.patient.enums.Language;
+import com.centerton.centerton.domain.patient.entity.enums.Language;
 import com.centerton.centerton.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

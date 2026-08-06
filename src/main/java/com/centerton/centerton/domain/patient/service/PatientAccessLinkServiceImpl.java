@@ -2,18 +2,26 @@ package com.centerton.centerton.domain.patient.service;
 
 import com.centerton.centerton.domain.patient.entity.Patient;
 import com.centerton.centerton.domain.patient.entity.PatientAccessLink;
+import com.centerton.centerton.domain.patient.exception.PatientAccessLinkAuthenticationInvalidException;
 import com.centerton.centerton.domain.patient.exception.PatientAccessLinkExpirationInvalidException;
+import com.centerton.centerton.domain.patient.exception.PatientAccessLinkExpiredException;
 import com.centerton.centerton.domain.patient.exception.PatientAccessLinkHashFailedException;
+import com.centerton.centerton.domain.patient.exception.PatientAccessLinkInvalidException;
 import com.centerton.centerton.domain.patient.exception.PatientAccessLinkTokenGenerationFailedException;
+import com.centerton.centerton.domain.patient.exception.PatientBirthDateNotMatchedException;
 import com.centerton.centerton.domain.patient.exception.PatientNotFoundException;
 import com.centerton.centerton.domain.patient.repository.PatientAccessLinkRepository;
 import com.centerton.centerton.domain.patient.repository.PatientRepository;
 import com.centerton.centerton.domain.patient.web.dto.PatientAccessLinkCreateReq;
 import com.centerton.centerton.domain.patient.web.dto.PatientAccessLinkCreateRes;
+import com.centerton.centerton.domain.patient.web.dto.PatientAccessLinkVerifyReq;
+import com.centerton.centerton.domain.patient.web.dto.PatientAccessLinkVerifyRes;
+import com.centerton.centerton.global.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.nio.charset.StandardCharsets;
@@ -34,6 +42,7 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
 
     private final PatientRepository patientRepository;
     private final PatientAccessLinkRepository patientAccessLinkRepository;
+    private final JwtTokenProvider jwtTokenProvider;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${patient.access-link.base-url:http://localhost:8080/patient/access}")
@@ -41,11 +50,11 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
 
     @Override
     @Transactional
-    public PatientAccessLinkCreateRes createAccessLink(Long patientId, PatientAccessLinkCreateReq req) {
+    public PatientAccessLinkCreateRes createAccessLink(Long patientId, PatientAccessLinkCreateReq request) {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(PatientNotFoundException::new);
 
-        int expiresInMinutes = resolveExpiresInMinutes(req);
+        int expiresInMinutes = resolveExpiresInMinutes(request);
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(expiresInMinutes);
         GeneratedToken generatedToken = generateUniqueToken();
 
@@ -57,10 +66,37 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
         return PatientAccessLinkCreateRes.of(accessLink, generatedToken.rawToken(), magicLink);
     }
 
-    private int resolveExpiresInMinutes(PatientAccessLinkCreateReq req) {
-        int expiresInMinutes = req == null
+    @Override
+    public PatientAccessLinkVerifyRes verifyAccessLink(PatientAccessLinkVerifyReq request) {
+        validateVerifyRequest(request);
+
+        String tokenHash = hashToken(request.token());
+        PatientAccessLink accessLink = patientAccessLinkRepository.findByTokenHash(tokenHash)
+                .orElseThrow(PatientAccessLinkInvalidException::new);
+
+        if (accessLink.isExpired(LocalDateTime.now())) {
+            throw new PatientAccessLinkExpiredException();
+        }
+
+        Patient patient = accessLink.getPatient();
+        if (!patient.getBirthDate().equals(request.birthDate())) {
+            throw new PatientBirthDateNotMatchedException();
+        }
+
+        String accessToken = jwtTokenProvider.createPatientAccessToken(patient.getId());
+        return PatientAccessLinkVerifyRes.of(patient.getId(), accessToken);
+    }
+
+    private void validateVerifyRequest(PatientAccessLinkVerifyReq request) {
+        if (request == null || !StringUtils.hasText(request.token()) || request.birthDate() == null) {
+            throw new PatientAccessLinkAuthenticationInvalidException();
+        }
+    }
+
+    private int resolveExpiresInMinutes(PatientAccessLinkCreateReq request) {
+        int expiresInMinutes = request == null
                 ? PatientAccessLinkCreateReq.DEFAULT_EXPIRES_IN_MINUTES
-                : req.resolvedExpiresInMinutes();
+                : request.resolvedExpiresInMinutes();
 
         if (expiresInMinutes < PatientAccessLinkCreateReq.MIN_EXPIRES_IN_MINUTES
                 || expiresInMinutes > PatientAccessLinkCreateReq.MAX_EXPIRES_IN_MINUTES) {

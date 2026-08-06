@@ -3,6 +3,8 @@ package com.centerton.centerton.domain.patient.web.controller;
 import com.centerton.centerton.domain.patient.service.PatientAccessLinkService;
 import com.centerton.centerton.domain.patient.web.dto.PatientAccessLinkCreateReq;
 import com.centerton.centerton.domain.patient.web.dto.PatientAccessLinkCreateRes;
+import com.centerton.centerton.domain.patient.web.dto.PatientAccessLinkVerifyReq;
+import com.centerton.centerton.domain.patient.web.dto.PatientAccessLinkVerifyRes;
 import com.centerton.centerton.global.response.SuccessResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,12 +25,21 @@ public class PatientAccessLinkController {
     @PostMapping("/{patientId}/access-links")
     public ResponseEntity<SuccessResponse<PatientAccessLinkCreateRes>> createAccessLink(
             @PathVariable Long patientId,
-            @RequestBody(required = false) PatientAccessLinkCreateReq req
+            @RequestBody(required = false) PatientAccessLinkCreateReq request
     ) {
-        PatientAccessLinkCreateRes res = patientAccessLinkService.createAccessLink(patientId, req);
+        PatientAccessLinkCreateRes response = patientAccessLinkService.createAccessLink(patientId, request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(SuccessResponse.created(res));
+                .body(SuccessResponse.created(response));
+    }
+
+    @PostMapping("/access-links/verify")
+    public ResponseEntity<SuccessResponse<PatientAccessLinkVerifyRes>> verifyAccessLink(
+            @RequestBody PatientAccessLinkVerifyReq request
+    ) {
+        PatientAccessLinkVerifyRes response = patientAccessLinkService.verifyAccessLink(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(SuccessResponse.from(response));
     }
 }

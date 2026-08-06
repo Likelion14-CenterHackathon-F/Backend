@@ -1,12 +1,12 @@
 package com.centerton.centerton.global.exception;
 
-
 import com.centerton.centerton.global.response.ErrorResponse;
 import com.centerton.centerton.global.response.code.ErrorResponseCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -83,6 +83,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse<?>> handleHttpRequestMethodNotSupportException(HttpRequestMethodNotSupportedException e) {
         log.error("HttpRequestMethodNotSupportedException : {}", e.getMessage(), e);
         ErrorResponse<?> errorResponse = ErrorResponse.from(ErrorResponseCode.UNSUPPORTED_HTTP_METHOD);
+        return ResponseEntity.status(errorResponse.getHttpStatus()).body(errorResponse);
+    }
+
+    // 지원하지 않는 Content-Type으로 요청할 경우
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse<?>> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException e) {
+        log.error("HttpMediaTypeNotSupportedException : {}", e.getMessage(), e);
+        ErrorResponse<?> errorResponse = ErrorResponse.from(ErrorResponseCode.UNSUPPORTED_CONTENT_TYPE);
         return ResponseEntity.status(errorResponse.getHttpStatus()).body(errorResponse);
     }
 
