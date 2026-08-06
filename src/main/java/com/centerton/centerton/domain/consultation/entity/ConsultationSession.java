@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @Getter
 @Entity
 @Table(
-        name = "consultation_session",
+        name = "consultation_sessions",
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_consultation_session_appointment",
@@ -165,8 +165,7 @@ public class ConsultationSession extends BaseEntity {
     }
 
     public boolean isSttStartingOrRunning() {
-        return sttStatus == SttAgentStatus.STARTING
-                || sttStatus == SttAgentStatus.RUNNING;
+        return sttStatus == SttAgentStatus.STARTING || sttStatus == SttAgentStatus.RUNNING;
     }
 
     public boolean isReadyForStt() {
@@ -177,21 +176,15 @@ public class ConsultationSession extends BaseEntity {
     }
 
     public Integer getAgoraUid(ParticipantRole role) {
-        return role == ParticipantRole.PATIENT
-                ? patientAgoraUid
-                : medicalStaffAgoraUid;
+        return role == ParticipantRole.PATIENT ? patientAgoraUid : medicalStaffAgoraUid;
     }
 
     public String getLanguage(ParticipantRole role) {
-        return role == ParticipantRole.PATIENT
-                ? patientLanguage
-                : medicalStaffLanguage;
+        return role == ParticipantRole.PATIENT ? patientLanguage : medicalStaffLanguage;
     }
 
     public String getPeerLanguage(ParticipantRole role) {
-        return role == ParticipantRole.PATIENT
-                ? medicalStaffLanguage
-                : patientLanguage;
+        return role == ParticipantRole.PATIENT ? medicalStaffLanguage : patientLanguage;
     }
 
     public ParticipantRole resolveParticipantRole(Integer agoraUid) {

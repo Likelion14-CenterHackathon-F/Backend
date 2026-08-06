@@ -5,8 +5,8 @@ import com.centerton.centerton.domain.consultation.dto.request.CaptionItemReq;
 import com.centerton.centerton.domain.consultation.dto.response.CaptionBatchRes;
 import com.centerton.centerton.domain.consultation.dto.response.CaptionRes;
 import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
-import com.centerton.centerton.domain.consultation.entity.enums.ParticipantRole;
 import com.centerton.centerton.domain.consultation.entity.TranscriptSegment;
+import com.centerton.centerton.domain.consultation.entity.enums.ParticipantRole;
 import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCode;
 import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
 import com.centerton.centerton.domain.consultation.repository.TranscriptSegmentRepository;
@@ -14,8 +14,6 @@ import com.centerton.centerton.global.exception.BaseException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,10 +33,7 @@ public class CaptionService {
     }
 
     @Transactional
-    public CaptionBatchRes saveBatch(
-            Long appointmentId,
-            CaptionBatchReq request
-    ) {
+    public CaptionBatchRes saveBatch(Long appointmentId, CaptionBatchReq request) {
         ConsultationSession session = getSession(appointmentId);
         validateSessionId(session, request.sessionId());
 
@@ -46,24 +41,20 @@ public class CaptionService {
         int updatedCount = 0;
 
         for (CaptionItemReq caption : request.captions()) {
-            if (!caption.isFinal()) {
+            if (!Boolean.TRUE.equals(caption.finalResult())) {
                 continue;
             }
 
-            Long sentenceId = parseLong(caption.sentenceId());
-            Integer speakerAgoraUid = parseInteger(caption.speakerAgoraUid());
             ParticipantRole speakerRole = resolveSpeakerRole(
                     session,
-                    speakerAgoraUid
+                    caption.speakerAgoraUid()
             );
-            Long textTimestamp = parseNullableLong(caption.textTimestamp());
 
-            Optional<TranscriptSegment> existing =
-                    transcriptRepository
-                            .findByConsultationSessionSessionIdAndSentenceId(
-                                    session.getSessionId(),
-                                    sentenceId
-                            );
+            Optional<TranscriptSegment> existing = transcriptRepository
+                    .findByConsultationSessionSessionIdAndSentenceId(
+                            session.getSessionId(),
+                            caption.sentenceId()
+                    );
 
             if (existing.isPresent()) {
                 existing.get().updateFinalCaption(
@@ -71,7 +62,7 @@ public class CaptionService {
                         caption.sourceText(),
                         caption.targetLanguage(),
                         caption.translatedText(),
-                        textTimestamp,
+                        caption.textTimestamp(),
                         caption.durationMs()
                 );
                 updatedCount++;
@@ -87,21 +78,16 @@ public class CaptionService {
                     caption.sourceText(),
                     blankToNull(caption.targetLanguage()),
                     blankToNull(caption.translatedText()),
-                    sentenceId,
-                    textTimestamp,
-                    caption.durationMs(),
-                    LocalDateTime.now(ZoneOffset.UTC)
+                    caption.sentenceId(),
+                    caption.textTimestamp(),
+                    caption.durationMs()
             );
 
             transcriptRepository.save(segment);
             insertedCount++;
         }
 
-        return new CaptionBatchRes(
-                request.captions().size(),
-                insertedCount,
-                updatedCount
-        );
+        return new CaptionBatchRes(request.captions().size(), insertedCount, updatedCount);
     }
 
     public List<CaptionRes> getCaptions(Long appointmentId) {
@@ -117,8 +103,7 @@ public class CaptionService {
     }
 
     private ConsultationSession getSession(Long appointmentId) {
-        return sessionRepository
-                .findByAppointmentId(appointmentId)
+        return sessionRepository.findByAppointmentId(appointmentId)
                 .orElseThrow(() -> new BaseException(
                         ConsultationErrorCode.CONSULTATION_NOT_FOUND
                 ));
@@ -129,9 +114,7 @@ public class CaptionService {
             Long requestedSessionId
     ) {
         if (!session.getSessionId().equals(requestedSessionId)) {
-            throw new BaseException(
-                    ConsultationErrorCode.CONSULTATION_SESSION_MISMATCH
-            );
+            throw new BaseException(ConsultationErrorCode.CONSULTATION_SESSION_MISMATCH);
         }
     }
 
@@ -142,44 +125,14 @@ public class CaptionService {
         try {
             return session.resolveParticipantRole(speakerAgoraUid);
         } catch (IllegalArgumentException exception) {
-            throw new BaseException(
-                    ConsultationErrorCode.INVALID_CAPTION_SPEAKER
-            );
-        }
-    }
-
-    private Long parseLong(String value) {
-        try {
-            return Long.parseLong(value);
-        } catch (NumberFormatException exception) {
-            throw new BaseException(
-                    ConsultationErrorCode.INVALID_CAPTION_IDENTIFIER
-            );
-        }
-    }
-
-    private Long parseNullableLong(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-
-        return parseLong(value);
-    }
-
-    private Integer parseInteger(String value) {
-        try {
-            return Integer.valueOf(value);
-        } catch (NumberFormatException exception) {
-            throw new BaseException(
-                    ConsultationErrorCode.INVALID_CAPTION_IDENTIFIER
-            );
+            throw new BaseException(ConsultationErrorCode.INVALID_CAPTION_SPEAKER);
         }
     }
 
     private CaptionRes toResponse(TranscriptSegment segment) {
         return new CaptionRes(
                 segment.getTranscriptSegmentId(),
-                String.valueOf(segment.getSentenceId()),
+                segment.getSentenceId(),
                 segment.getSequenceNumber(),
                 segment.getSpeakerRole(),
                 segment.getSpeakerAgoraUid(),
@@ -188,9 +141,7 @@ public class CaptionService {
                 segment.getTargetLanguage(),
                 segment.getTranslatedText(),
                 Boolean.TRUE.equals(segment.getFinalResult()),
-                segment.getTextTimestamp() == null
-                        ? null
-                        : String.valueOf(segment.getTextTimestamp()),
+                segment.getTextTimestamp(),
                 segment.getDurationMs(),
                 segment.getCreatedAt()
         );

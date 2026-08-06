@@ -1,20 +1,23 @@
 package com.centerton.centerton.domain.consultation.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
 public record CaptionItemReq(
-
-        @NotBlank
-        String sentenceId,
+        @NotNull
+        @PositiveOrZero
+        Long sentenceId,
 
         @NotNull
         @PositiveOrZero
         Integer sequenceNumber,
 
-        @NotBlank
-        String speakerAgoraUid,
+        @NotNull
+        @Positive
+        Integer speakerAgoraUid,
 
         @NotBlank
         String sourceLanguage,
@@ -26,11 +29,14 @@ public record CaptionItemReq(
 
         String translatedText,
 
-        String textTimestamp,
+        @PositiveOrZero
+        Long textTimestamp,
 
         @PositiveOrZero
         Integer durationMs,
 
-        boolean isFinal
+        @JsonProperty("isFinal")
+        @NotNull
+        Boolean finalResult
 ) {
 }

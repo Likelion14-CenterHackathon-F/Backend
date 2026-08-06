@@ -56,23 +56,17 @@ public class ConsultationService {
     }
 
     @Transactional
-    public JoinConsultationRes join(
-            Long appointmentId,
-            JoinConsultationReq request
-    ) {
+    public JoinConsultationRes join(Long appointmentId, JoinConsultationReq request) {
         joinPolicy.validateJoin(appointmentId);
 
-        ConsultationSession session = sessionRepository
-                .findByAppointmentId(appointmentId)
+        ConsultationSession session = sessionRepository.findByAppointmentId(appointmentId)
                 .orElseGet(() -> ConsultationSession.create(
                         appointmentId,
                         generateChannelName(appointmentId)
                 ));
 
         if (session.isCompleted()) {
-            throw new BaseException(
-                    ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED
-            );
+            throw new BaseException(ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED);
         }
 
         session.registerParticipant(
@@ -83,83 +77,65 @@ public class ConsultationService {
         session.start(nowUtc());
         sessionRepository.save(session);
 
-        AgoraRtcTokenService.IssuedRtcToken issuedToken =
-                rtcTokenService.issuePublisherToken(
-                        session.getRtcChannelName(),
-                        request.agoraUid()
-                );
+        AgoraRtcTokenService.IssuedRtcToken issuedToken = rtcTokenService.issuePublisherToken(
+                session.getRtcChannelName(),
+                request.agoraUid()
+        );
 
         return new JoinConsultationRes(
                 appointmentId,
                 session.getSessionId(),
                 agoraProperties.getAppId(),
                 session.getRtcChannelName(),
-                String.valueOf(request.agoraUid()),
+                request.agoraUid(),
                 issuedToken.token(),
                 issuedToken.expiresAt(),
                 request.role(),
                 session.getLanguage(request.role()),
                 session.getPeerLanguage(request.role()),
-                String.valueOf(agoraProperties.getStt().getPubBotUid()),
+                agoraProperties.getStt().getPubBotUid(),
                 RECOMMENDED_DURATION_SECONDS,
                 null
         );
     }
 
-    public TokenRes renewToken(
-            Long appointmentId,
-            TokenRenewReq request
-    ) {
+    public TokenRes renewToken(Long appointmentId, TokenRenewReq request) {
         ConsultationSession session = getSession(appointmentId);
 
         if (session.isCompleted()) {
-            throw new BaseException(
-                    ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED
-            );
+            throw new BaseException(ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED);
         }
 
         Integer agoraUid = session.getAgoraUid(request.role());
         if (agoraUid == null) {
-            throw new BaseException(
-                    ConsultationErrorCode.CONSULTATION_PARTICIPANTS_NOT_READY
-            );
+            throw new BaseException(ConsultationErrorCode.CONSULTATION_PARTICIPANTS_NOT_READY);
         }
 
-        AgoraRtcTokenService.IssuedRtcToken issuedToken =
-                rtcTokenService.issuePublisherToken(
-                        session.getRtcChannelName(),
-                        agoraUid
-                );
-
-        return new TokenRes(
-                issuedToken.token(),
-                issuedToken.expiresAt()
+        AgoraRtcTokenService.IssuedRtcToken issuedToken = rtcTokenService.issuePublisherToken(
+                session.getRtcChannelName(),
+                agoraUid
         );
+
+        return new TokenRes(issuedToken.token(), issuedToken.expiresAt());
     }
 
     @Transactional
     public TranscriptionRes startTranscription(Long appointmentId) {
-        ConsultationSession session = sessionRepository
-                .findByAppointmentIdForUpdate(appointmentId)
+        ConsultationSession session = sessionRepository.findByAppointmentIdForUpdate(appointmentId)
                 .orElseThrow(() -> new BaseException(
                         ConsultationErrorCode.CONSULTATION_NOT_FOUND
                 ));
 
         if (session.isCompleted()) {
-            throw new BaseException(
-                    ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED
-            );
+            throw new BaseException(ConsultationErrorCode.CONSULTATION_ALREADY_COMPLETED);
         }
 
-        if (session.isSttStartingOrRunning()
-                && session.getSttAgentId() != null) {
+        if (session.isSttStartingOrRunning() && session.getSttAgentId() != null) {
             return toTranscriptionRes(session);
         }
 
         if (!session.isReadyForStt()) {
-            throw new BaseException(
-                    ConsultationErrorCode.CONSULTATION_PARTICIPANTS_NOT_READY
-            );
+            throw new BaseException(ConsultationErrorCode.CONSULTATION_PARTICIPANTS_NOT_READY);
         }
 
         session.markSttStarting();
@@ -182,8 +158,7 @@ public class ConsultationService {
 
     @Transactional
     public ConsultationEndRes end(Long appointmentId) {
-        ConsultationSession session = sessionRepository
-                .findByAppointmentIdForUpdate(appointmentId)
+        ConsultationSession session = sessionRepository.findByAppointmentIdForUpdate(appointmentId)
                 .orElseThrow(() -> new BaseException(
                         ConsultationErrorCode.CONSULTATION_NOT_FOUND
                 ));
@@ -217,8 +192,7 @@ public class ConsultationService {
     }
 
     public List<ConsultationHistoryRes> getHistory() {
-        return sessionRepository
-                .findAllByOrderByStartedAtDesc()
+        return sessionRepository.findAllByOrderByStartedAtDesc()
                 .stream()
                 .map(session -> new ConsultationHistoryRes(
                         session.getAppointmentId(),
@@ -226,25 +200,21 @@ public class ConsultationService {
                         session.getStartedAt(),
                         session.getEndedAt(),
                         session.getActualDurationSeconds(),
-                        transcriptRepository
-                                .existsByConsultationSessionSessionId(
-                                        session.getSessionId()
-                                )
+                        transcriptRepository.existsByConsultationSessionSessionId(
+                                session.getSessionId()
+                        )
                 ))
                 .toList();
     }
 
     private ConsultationSession getSession(Long appointmentId) {
-        return sessionRepository
-                .findByAppointmentId(appointmentId)
+        return sessionRepository.findByAppointmentId(appointmentId)
                 .orElseThrow(() -> new BaseException(
                         ConsultationErrorCode.CONSULTATION_NOT_FOUND
                 ));
     }
 
-    private TranscriptionRes toTranscriptionRes(
-            ConsultationSession session
-    ) {
+    private TranscriptionRes toTranscriptionRes(ConsultationSession session) {
         return new TranscriptionRes(
                 session.getSessionId(),
                 session.getSttAgentId(),

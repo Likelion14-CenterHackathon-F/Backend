@@ -4,6 +4,8 @@ import com.centerton.centerton.domain.consultation.entity.enums.ParticipantRole;
 import com.centerton.centerton.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -18,24 +20,18 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Getter
 @Entity
 @Table(
-        name = "transcript_segment",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_transcript_session_sentence",
-                        columnNames = {"session_id", "sentence_id"}
-                )
-        },
-        indexes = {
-                @Index(
-                        name = "idx_transcript_session_sequence",
-                        columnList = "session_id, sequence_number"
-                )
-        }
+        name = "transcript_segments",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_transcript_session_sentence",
+                columnNames = {"session_id", "sentence_id"}
+        ),
+        indexes = @Index(
+                name = "idx_transcript_session_sequence",
+                columnList = "session_id, sequence_number"
+        )
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -49,11 +45,12 @@ public class TranscriptSegment extends BaseEntity {
     @Column(name = "sequence_number", nullable = false)
     private Integer sequenceNumber;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "speaker_role", nullable = false, length = 30)
-    private String speakerRole;
+    private ParticipantRole speakerRole;
 
-    @Column(name = "speaker_agora_uid", nullable = false, length = 20)
-    private String speakerAgoraUid;
+    @Column(name = "speaker_agora_uid", nullable = false)
+    private Integer speakerAgoraUid;
 
     @Column(name = "source_language", nullable = false, length = 20)
     private String sourceLanguage;
@@ -69,9 +66,6 @@ public class TranscriptSegment extends BaseEntity {
 
     @Column(name = "is_final", nullable = false)
     private Boolean finalResult;
-
-    @Column(name = "created_at", nullable = false, columnDefinition = "DATETIME(3)")
-    private LocalDateTime createdAt;
 
     @Column(name = "sentence_id", nullable = false)
     private Long sentenceId;
@@ -90,27 +84,25 @@ public class TranscriptSegment extends BaseEntity {
             ConsultationSession consultationSession,
             Integer sequenceNumber,
             ParticipantRole speakerRole,
-            String speakerAgoraUid,
+            Integer speakerAgoraUid,
             String sourceLanguage,
             String sourceText,
             String targetLanguage,
             String translatedText,
             Long sentenceId,
             Long textTimestamp,
-            Integer durationMs,
-            LocalDateTime createdAt
+            Integer durationMs
     ) {
         return new TranscriptSegment(
                 null,
                 sequenceNumber,
-                speakerRole.name(),
+                speakerRole,
                 speakerAgoraUid,
                 sourceLanguage,
                 sourceText,
                 targetLanguage,
                 translatedText,
                 true,
-                createdAt,
                 sentenceId,
                 textTimestamp,
                 durationMs,
@@ -129,23 +121,18 @@ public class TranscriptSegment extends BaseEntity {
         if (sourceLanguage != null && !sourceLanguage.isBlank()) {
             this.sourceLanguage = sourceLanguage;
         }
-
         if (sourceText != null && !sourceText.isBlank()) {
             this.sourceText = sourceText;
         }
-
         if (targetLanguage != null && !targetLanguage.isBlank()) {
             this.targetLanguage = targetLanguage;
         }
-
         if (translatedText != null && !translatedText.isBlank()) {
             this.translatedText = translatedText;
         }
-
         if (textTimestamp != null) {
             this.textTimestamp = textTimestamp;
         }
-
         if (durationMs != null) {
             this.durationMs = durationMs;
         }

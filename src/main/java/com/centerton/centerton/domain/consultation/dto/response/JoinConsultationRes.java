@@ -7,15 +7,15 @@ import java.time.Instant;
 public record JoinConsultationRes(
         Long appointmentId,
         Long sessionId,
-        String appId,
+        String agoraAppId,
         String rtcChannelName,
-        String agoraUid,
+        Integer agoraUid,
         String rtcToken,
         Instant tokenExpiresAt,
         ParticipantRole role,
         String userLanguage,
         String peerLanguage,
-        String sttPublisherUid,
+        Integer sttPublisherAgoraUid,
         int recommendedDurationSeconds,
         Instant forceEndAt
 ) {

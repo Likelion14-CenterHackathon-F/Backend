@@ -1,19 +1,22 @@
 package com.centerton.centerton.domain.consultation.dto.response;
 
+import com.centerton.centerton.domain.consultation.entity.enums.ParticipantRole;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.LocalDateTime;
 
 public record CaptionRes(
         Long transcriptSegmentId,
-        String sentenceId,
+        Long sentenceId,
         Integer sequenceNumber,
-        String speakerRole,
-        String speakerAgoraUid,
+        ParticipantRole speakerRole,
+        Integer speakerAgoraUid,
         String sourceLanguage,
         String sourceText,
         String targetLanguage,
         String translatedText,
-        boolean isFinal,
-        String textTimestamp,
+        @JsonProperty("isFinal") boolean finalResult,
+        Long textTimestamp,
         Integer durationMs,
         LocalDateTime createdAt
 ) {
