@@ -37,7 +37,7 @@ public class PatientAccessLink extends BaseEntity {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "token_hash", nullable = false)
+    @Column(name = "token_hash", nullable = false, length = 64)
     private String tokenHash;
 
     @Column(name = "expires_at", nullable = false)
@@ -46,6 +46,14 @@ public class PatientAccessLink extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
+
+    public static PatientAccessLink create(String tokenHash, LocalDateTime expiresAt, Patient patient) {
+        return PatientAccessLink.builder()
+                .tokenHash(tokenHash)
+                .expiresAt(expiresAt)
+                .patient(patient)
+                .build();
+    }
 
     public boolean isExpired(LocalDateTime now) {
         return !expiresAt.isAfter(now);

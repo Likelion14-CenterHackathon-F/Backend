@@ -1,0 +1,109 @@
+package com.centerton.centerton.domain.patient.service;
+
+import com.centerton.centerton.domain.patient.entity.Patient;
+import com.centerton.centerton.domain.patient.entity.PatientAccessLink;
+import com.centerton.centerton.domain.patient.exception.PatientAccessLinkExpirationInvalidException;
+import com.centerton.centerton.domain.patient.exception.PatientAccessLinkHashFailedException;
+import com.centerton.centerton.domain.patient.exception.PatientAccessLinkTokenGenerationFailedException;
+import com.centerton.centerton.domain.patient.exception.PatientNotFoundException;
+import com.centerton.centerton.domain.patient.repository.PatientAccessLinkRepository;
+import com.centerton.centerton.domain.patient.repository.PatientRepository;
+import com.centerton.centerton.domain.patient.web.dto.PatientAccessLinkCreateReq;
+import com.centerton.centerton.domain.patient.web.dto.PatientAccessLinkCreateRes;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Base64;
+import java.util.HexFormat;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
+
+    private static final int TOKEN_BYTE_LENGTH = 32;
+    private static final int MAX_TOKEN_GENERATION_ATTEMPTS = 5;
+
+    private final PatientRepository patientRepository;
+    private final PatientAccessLinkRepository patientAccessLinkRepository;
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    @Value("${patient.access-link.base-url:http://localhost:8080/patient/access}")
+    private String patientAccessLinkBaseUrl;
+
+    @Override
+    @Transactional
+    public PatientAccessLinkCreateRes createAccessLink(Long patientId, PatientAccessLinkCreateReq req) {
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(PatientNotFoundException::new);
+
+        int expiresInMinutes = resolveExpiresInMinutes(req);
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(expiresInMinutes);
+        GeneratedToken generatedToken = generateUniqueToken();
+
+        PatientAccessLink accessLink = patientAccessLinkRepository.save(
+                PatientAccessLink.create(generatedToken.tokenHash(), expiresAt, patient)
+        );
+
+        String magicLink = buildMagicLink(generatedToken.rawToken());
+        return PatientAccessLinkCreateRes.of(accessLink, generatedToken.rawToken(), magicLink);
+    }
+
+    private int resolveExpiresInMinutes(PatientAccessLinkCreateReq req) {
+        int expiresInMinutes = req == null
+                ? PatientAccessLinkCreateReq.DEFAULT_EXPIRES_IN_MINUTES
+                : req.resolvedExpiresInMinutes();
+
+        if (expiresInMinutes < PatientAccessLinkCreateReq.MIN_EXPIRES_IN_MINUTES
+                || expiresInMinutes > PatientAccessLinkCreateReq.MAX_EXPIRES_IN_MINUTES) {
+            throw new PatientAccessLinkExpirationInvalidException();
+        }
+        return expiresInMinutes;
+    }
+
+    private GeneratedToken generateUniqueToken() {
+        for (int attempt = 0; attempt < MAX_TOKEN_GENERATION_ATTEMPTS; attempt++) {
+            String rawToken = generateRawToken();
+            String tokenHash = hashToken(rawToken);
+
+            if (!patientAccessLinkRepository.existsByTokenHash(tokenHash)) {
+                return new GeneratedToken(rawToken, tokenHash);
+            }
+        }
+        throw new PatientAccessLinkTokenGenerationFailedException();
+    }
+
+    private String generateRawToken() {
+        byte[] tokenBytes = new byte[TOKEN_BYTE_LENGTH];
+        secureRandom.nextBytes(tokenBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
+    }
+
+    private String hashToken(String rawToken) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new PatientAccessLinkHashFailedException();
+        }
+    }
+
+    private String buildMagicLink(String rawToken) {
+        return UriComponentsBuilder.fromUriString(patientAccessLinkBaseUrl)
+                .queryParam("token", rawToken)
+                .build()
+                .toUriString();
+    }
+
+    private record GeneratedToken(String rawToken, String tokenHash) {
+    }
+}
