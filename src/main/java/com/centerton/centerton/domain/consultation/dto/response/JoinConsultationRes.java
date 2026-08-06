@@ -5,11 +5,11 @@ import com.centerton.centerton.domain.consultation.entity.enums.ParticipantRole;
 import java.time.Instant;
 
 public record JoinConsultationRes(
-        Long consultationId,
+        Long appointmentId,
         Long sessionId,
         String appId,
-        String channelName,
-        String uid,
+        String rtcChannelName,
+        String agoraUid,
         String rtcToken,
         Instant tokenExpiresAt,
         ParticipantRole role,

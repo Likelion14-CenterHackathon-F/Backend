@@ -16,8 +16,6 @@ public record CaptionItemReq(
         @NotBlank
         String speakerAgoraUid,
 
-        String speakerRole,
-
         @NotBlank
         String sourceLanguage,
 
