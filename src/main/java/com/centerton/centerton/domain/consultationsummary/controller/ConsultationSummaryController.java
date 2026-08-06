@@ -38,6 +38,17 @@ public class ConsultationSummaryController {
         ));
     }
 
+    @GetMapping("/{summaryId}")
+    public SuccessResponse<ConsultationSummaryDetailRes> getSummary(
+            @PathVariable Long summaryId,
+            @RequestParam(defaultValue = "KO") String language
+    ) {
+        return SuccessResponse.from(consultationSummaryService.getSummary(
+                summaryId,
+                parseLanguage(language)
+        ));
+    }
+
     private SummaryLanguage parseLanguage(String value) {
         try {
             return SummaryLanguage.from(value);
