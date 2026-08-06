@@ -6,7 +6,6 @@ import java.util.List;
 public record ConsultationSummaryDetailRes(
         Long summaryId,
         LocalDateTime consultedAt,
-        String hospitalName,
         String medicalStaffName,
         Integer actualDurationSeconds,
         String language,

@@ -90,7 +90,6 @@ public class ConsultationSummaryService {
         );
         ConsultationSummary summary = ConsultationSummary.create(
                 resolveConsultedAt(session),
-                request.hospitalName(),
                 request.medicalStaffName(),
                 result.summary(),
                 result.patientConsultationDetails(),
@@ -140,7 +139,6 @@ public class ConsultationSummaryService {
             responses.add(new ConsultationSummaryListRes(
                     summary.getSummaryId(),
                     summary.getConsultedAt(),
-                    summary.getHospitalName(),
                     summary.getMedicalStaffName(),
                     session.getActualDurationSeconds(),
                     language.getResponseCode(),
@@ -201,7 +199,6 @@ public class ConsultationSummaryService {
         return new ConsultationSummaryDetailRes(
                 summary.getSummaryId(),
                 summary.getConsultedAt(),
-                summary.getHospitalName(),
                 summary.getMedicalStaffName(),
                 session.getActualDurationSeconds(),
                 language.getResponseCode(),

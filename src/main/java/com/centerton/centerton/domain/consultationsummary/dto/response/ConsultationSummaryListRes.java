@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 public record ConsultationSummaryListRes(
         Long summaryId,
         LocalDateTime consultedAt,
-        String hospitalName,
         String medicalStaffName,
         Integer actualDurationSeconds,
         String language,

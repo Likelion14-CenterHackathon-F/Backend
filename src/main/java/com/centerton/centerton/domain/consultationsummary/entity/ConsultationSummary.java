@@ -35,9 +35,6 @@ public class ConsultationSummary {
     @Column(name = "consulted_at")
     private LocalDateTime consultedAt;
 
-    @Column(name = "hospital_name")
-    private String hospitalName;
-
     @Column(name = "medical_staff_name")
     private String medicalStaffName;
 
@@ -61,14 +58,12 @@ public class ConsultationSummary {
 
     private ConsultationSummary(
             LocalDateTime consultedAt,
-            String hospitalName,
             String medicalStaffName,
             String translatedSummary,
             String consultationDetails,
             ConsultationSession consultationSession
     ) {
         this.consultedAt = consultedAt;
-        this.hospitalName = hospitalName;
         this.medicalStaffName = medicalStaffName;
         this.translatedSummary = translatedSummary;
         this.consultationDetails = consultationDetails;
@@ -77,7 +72,6 @@ public class ConsultationSummary {
 
     public static ConsultationSummary create(
             LocalDateTime consultedAt,
-            String hospitalName,
             String medicalStaffName,
             String koreanSummary,
             String koreanConsultationDetails,
@@ -85,7 +79,6 @@ public class ConsultationSummary {
     ) {
         return new ConsultationSummary(
                 consultedAt,
-                hospitalName,
                 medicalStaffName,
                 koreanSummary,
                 koreanConsultationDetails,
