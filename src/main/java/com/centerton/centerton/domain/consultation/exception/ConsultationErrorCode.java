@@ -60,6 +60,12 @@ public enum ConsultationErrorCode implements BaseResponseCode {
             "CONSULTATION_502_2",
             502,
             "Agora STT Agent 시작에 실패했습니다."
+    ),
+
+    STT_AGENT_STOP_FAILED(
+            "CONSULTATION_502_3",
+            502,
+            "Agora STT Agent 종료에 실패했습니다."
     );
 
     private final String code;

@@ -121,8 +121,12 @@ public class AgoraSttClient {
                     .toBodilessEntity();
 
         } catch (RestClientException exception) {
+            /*
+             * 기존에는 시작 실패 에러코드를 사용했으나,
+             * 종료 실패 전용 에러코드로 분리합니다.
+             */
             throw new BaseException(
-                    ConsultationErrorCode.STT_AGENT_START_FAILED
+                    ConsultationErrorCode.STT_AGENT_STOP_FAILED
             );
         }
     }
@@ -159,32 +163,58 @@ public class AgoraSttClient {
         );
 
         Map<String, Object> rtcConfig = new LinkedHashMap<>();
-        rtcConfig.put("channelName", session.getRtcChannelName());
-        rtcConfig.put("subBotUid", String.valueOf(subBotUid));
-        rtcConfig.put("subBotToken", subBotToken);
-        rtcConfig.put("pubBotUid", String.valueOf(pubBotUid));
-        rtcConfig.put("pubBotToken", pubBotToken);
+        rtcConfig.put(
+                "channelName",
+                session.getRtcChannelName()
+        );
+        rtcConfig.put(
+                "subBotUid",
+                String.valueOf(subBotUid)
+        );
+        rtcConfig.put(
+                "subBotToken",
+                subBotToken
+        );
+        rtcConfig.put(
+                "pubBotUid",
+                String.valueOf(pubBotUid)
+        );
+        rtcConfig.put(
+                "pubBotToken",
+                pubBotToken
+        );
         rtcConfig.put(
                 "subscribeAudioUids",
                 List.of(
-                        String.valueOf(session.getPatientAgoraUid()),
-                        String.valueOf(session.getMedicalStaffAgoraUid())
+                        String.valueOf(
+                                session.getPatientAgoraUid()
+                        ),
+                        String.valueOf(
+                                session.getMedicalStaffAgoraUid()
+                        )
                 )
         );
 
         Map<String, Object> requestBody = new LinkedHashMap<>();
+
         requestBody.put(
                 "name",
                 "consultation-"
                         + session.getSessionId()
                         + "-"
-                        + UUID.randomUUID().toString().substring(0, 8)
+                        + UUID.randomUUID()
+                        .toString()
+                        .substring(0, 8)
         );
         requestBody.put("languages", languages);
-        requestBody.put("uidLanguagesConfig", uidLanguagesConfig);
+        requestBody.put(
+                "uidLanguagesConfig",
+                uidLanguagesConfig
+        );
         requestBody.put(
                 "maxIdleTime",
-                agoraProperties.getStt().getMaxIdleTimeSeconds()
+                agoraProperties.getStt()
+                        .getMaxIdleTimeSeconds()
         );
         requestBody.put("rtcConfig", rtcConfig);
 
@@ -194,11 +224,15 @@ public class AgoraSttClient {
         if (!translationPairs.isEmpty()) {
             requestBody.put(
                     "translateConfig",
-                    Map.of("languages", translationPairs)
+                    Map.of(
+                            "languages",
+                            translationPairs
+                    )
             );
         }
 
-        List<String> keywords = agoraProperties.getStt().getKeywords();
+        List<String> keywords =
+                agoraProperties.getStt().getKeywords();
 
         if (keywords != null && !keywords.isEmpty()) {
             requestBody.put("keywords", keywords);
@@ -210,8 +244,11 @@ public class AgoraSttClient {
     private List<Map<String, Object>> createTranslationPairs(
             ConsultationSession session
     ) {
-        String patientLanguage = session.getPatientLanguage();
-        String medicalLanguage = session.getMedicalStaffLanguage();
+        String patientLanguage =
+                session.getPatientLanguage();
+
+        String medicalLanguage =
+                session.getMedicalStaffLanguage();
 
         if (patientLanguage == null
                 || medicalLanguage == null
@@ -221,7 +258,8 @@ public class AgoraSttClient {
             return List.of();
         }
 
-        List<Map<String, Object>> pairs = new ArrayList<>();
+        List<Map<String, Object>> pairs =
+                new ArrayList<>();
 
         pairs.add(Map.of(
                 "source",
