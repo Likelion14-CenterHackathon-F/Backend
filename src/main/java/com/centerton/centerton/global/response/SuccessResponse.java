@@ -30,7 +30,7 @@ public class SuccessResponse<T> extends BaseResponse {
         return new SuccessResponse<>(data, SuccessResponseCode.SUCCESS_OK);
     }
 
-    public static SuccessResponse<?> empty() {
+    public static SuccessResponse<Void> empty() {
         return new SuccessResponse<>(null, SuccessResponseCode.SUCCESS_OK);
     }
 

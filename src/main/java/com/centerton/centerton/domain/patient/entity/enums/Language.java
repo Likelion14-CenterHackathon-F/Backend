@@ -28,8 +28,9 @@ public enum Language {
             return null;
         }
 
+        String normalizedValue = value.trim();
         for (Language language : values()) {
-            if (language.getValue().equals(value)) {
+            if (language.name().equalsIgnoreCase(normalizedValue) || language.getValue().equals(normalizedValue)) {
                 return language;
             }
         }
