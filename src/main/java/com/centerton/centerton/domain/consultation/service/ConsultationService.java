@@ -58,7 +58,7 @@ public class ConsultationService {
 
     /**
      * 상담 세션 참여
-     *
+     * <p>
      * 이 메서드 자체에는 트랜잭션을 적용하지 않습니다.
      * 세션 생성 및 참여자 등록은 ConsultationTransactionService의
      * 짧은 트랜잭션에서 처리합니다.
@@ -155,7 +155,7 @@ public class ConsultationService {
 
     /**
      * STT Agent 시작
-     *
+     * <p>
      * 1. 짧은 DB 트랜잭션에서 STARTING 저장 후 커밋
      * 2. 트랜잭션 밖에서 Agora API 호출
      * 3. 성공 또는 실패 상태를 새로운 트랜잭션으로 저장
@@ -207,7 +207,7 @@ public class ConsultationService {
 
     /**
      * 상담 종료
-     *
+     * <p>
      * STT Agent 종료 실패가 상담 자체의 종료를 막지 않도록 처리합니다.
      */
     public ConsultationEndRes end(Long appointmentId) {
