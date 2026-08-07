@@ -41,9 +41,6 @@ public class CaptionService {
         int updatedCount = 0;
 
         for (CaptionItemReq caption : request.captions()) {
-            if (!Boolean.TRUE.equals(caption.finalResult())) {
-                continue;
-            }
 
             ParticipantRole speakerRole = resolveSpeakerRole(
                     session,

@@ -10,11 +10,22 @@ import java.util.Optional;
 public interface ConsultationSummaryRepository
         extends JpaRepository<ConsultationSummary, Long> {
 
-    @EntityGraph(attributePaths = "instructions")
-    Optional<ConsultationSummary> findByConsultationSessionSessionId(Long sessionId);
+    @EntityGraph(attributePaths = {
+            "instructions",
+            "consultationSession"
+    })
+    Optional<ConsultationSummary> findByConsultationSessionSessionId(
+            Long sessionId
+    );
 
-    @EntityGraph(attributePaths = "instructions")
-    Optional<ConsultationSummary> findBySummaryId(Long summaryId);
+    @EntityGraph(attributePaths = {
+            "instructions",
+            "consultationSession"
+    })
+    Optional<ConsultationSummary> findBySummaryId(
+            Long summaryId
+    );
 
+    @EntityGraph(attributePaths = "consultationSession")
     List<ConsultationSummary> findAllByOrderByConsultedAtDescSummaryIdDesc();
 }

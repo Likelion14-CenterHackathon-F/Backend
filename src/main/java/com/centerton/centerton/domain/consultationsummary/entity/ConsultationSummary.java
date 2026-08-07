@@ -13,6 +13,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,7 +24,15 @@ import java.util.List;
 
 @Getter
 @Entity
-@Table(name = "consultation_summaries")
+@Table(
+        name = "consultation_summaries",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_consultation_summary_session",
+                        columnNames = "session_id"
+                )
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ConsultationSummary {
 
@@ -86,7 +95,16 @@ public class ConsultationSummary {
         );
     }
 
-    public void addInstruction(String content, int sortOrder) {
-        instructions.add(SummaryInstruction.create(this, content, sortOrder));
+    public void addInstruction(
+            String content,
+            int sortOrder
+    ) {
+        instructions.add(
+                SummaryInstruction.create(
+                        this,
+                        content,
+                        sortOrder
+                )
+        );
     }
 }
