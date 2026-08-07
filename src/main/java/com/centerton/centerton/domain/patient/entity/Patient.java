@@ -52,8 +52,14 @@ public class Patient extends BaseEntity {
     private String timezoneId;
 
     public void updateSettings(Language language, String nationality, String timezoneId) {
-        this.language = language;
-        this.nationality = nationality;
-        this.timezoneId = timezoneId;
+        if (language != null) {
+            this.language = language;
+        }
+        if (nationality != null) {
+            this.nationality = nationality;
+        }
+        if (timezoneId != null) {
+            this.timezoneId = timezoneId;
+        }
     }
 }

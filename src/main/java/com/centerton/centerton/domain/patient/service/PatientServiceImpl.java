@@ -32,21 +32,28 @@ public class PatientServiceImpl implements PatientService {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(PatientNotFoundException::new);
 
-        String nationality = normalizeCountryCode(request.nationality());
-        String timezoneId = request.timezoneId().trim();
+        String nationality = resolveNationality(request.nationality());
+        String timezoneId = resolveTimezoneId(request.timezoneId());
         patient.updateSettings(request.language(), nationality, timezoneId);
     }
 
     private void validateSettingsRequest(PatientSettingsUpdateReq request) {
-        if (request == null
-                || request.language() == null
-                || !StringUtils.hasText(request.nationality())
-                || !StringUtils.hasText(request.timezoneId())) {
+        if (request == null || !hasAnySetting(request)) {
             throw new PatientSettingsInvalidException();
         }
 
-        validateCountryCode(request.nationality());
-        validateTimezoneId(request.timezoneId());
+        if (request.nationality() != null) {
+            validateCountryCode(request.nationality());
+        }
+        if (request.timezoneId() != null) {
+            validateTimezoneId(request.timezoneId());
+        }
+    }
+
+    private boolean hasAnySetting(PatientSettingsUpdateReq request) {
+        return request.language() != null
+                || StringUtils.hasText(request.nationality())
+                || StringUtils.hasText(request.timezoneId());
     }
 
     private void validateCountryCode(String nationality) {
@@ -61,6 +68,14 @@ public class PatientServiceImpl implements PatientService {
         } catch (DateTimeException e) {
             throw new PatientSettingsInvalidException();
         }
+    }
+
+    private String resolveNationality(String nationality) {
+        return nationality == null ? null : normalizeCountryCode(nationality);
+    }
+
+    private String resolveTimezoneId(String timezoneId) {
+        return timezoneId == null ? null : timezoneId.trim();
     }
 
     private String normalizeCountryCode(String nationality) {
