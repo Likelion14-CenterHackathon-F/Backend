@@ -50,4 +50,10 @@ public class Patient extends BaseEntity {
 
     @Column(name = "timezone_id")
     private String timezoneId;
+
+    public void updateSettings(Language language, String nationality, String timezoneId) {
+        this.language = language;
+        this.nationality = nationality;
+        this.timezoneId = timezoneId;
+    }
 }

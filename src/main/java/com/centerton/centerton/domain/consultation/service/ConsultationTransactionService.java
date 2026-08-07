@@ -16,7 +16,7 @@ import java.util.Optional;
 /**
  * ConsultationService에서 외부 Agora API 호출과 DB 트랜잭션을
  * 분리하기 위한 트랜잭션 전용 서비스입니다.
- *
+ * <p>
  * 각 메서드는 짧은 DB 작업만 수행하고 즉시 커밋합니다.
  */
 @Service
