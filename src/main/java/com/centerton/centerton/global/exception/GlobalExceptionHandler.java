@@ -1,5 +1,6 @@
 package com.centerton.centerton.global.exception;
 
+import com.centerton.centerton.domain.preconsultationsubmission.exception.PreconsultSubmissionErrorCode;
 import com.centerton.centerton.global.response.ErrorResponse;
 import com.centerton.centerton.global.response.code.ErrorResponseCode;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import tools.jackson.databind.exc.InvalidFormatException;
 
 @RestControllerAdvice
@@ -37,6 +39,17 @@ public class GlobalExceptionHandler {
         log.error("BindException : {}", e.getMessage(), e);
         ErrorResponse<?> errorResponse = ErrorResponse.of(ErrorResponseCode.INVALID_HTTP_MESSAGE_BODY, e.getFieldError().getDefaultMessage());
         return ResponseEntity.status((errorResponse.getHttpStatus())).body(errorResponse);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse<?>> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException e
+    ) {
+        log.error("MaxUploadSizeExceededException : {}", e.getMessage(), e);
+        ErrorResponse<?> errorResponse = ErrorResponse.from(
+                PreconsultSubmissionErrorCode.FILE_TOO_LARGE
+        );
+        return ResponseEntity.status(errorResponse.getHttpStatus()).body(errorResponse);
     }
 
     // RequestBody 등으로 전달 받은 JSON 바디의 파싱이 실패 했을 때
