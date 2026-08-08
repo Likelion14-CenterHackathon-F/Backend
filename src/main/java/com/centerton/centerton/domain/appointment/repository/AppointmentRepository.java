@@ -15,18 +15,22 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select appointment from Appointment appointment "
-            + "where appointment.appointmentId = :appointmentId")
-    Optional<Appointment> findByIdForUpdate(
-            @Param("appointmentId") Long appointmentId
+            + "where appointment.appointmentId = :appointmentId "
+            + "and appointment.patientId = :patientId")
+    Optional<Appointment> findByIdAndPatientIdForUpdate(
+            @Param("appointmentId") Long appointmentId,
+            @Param("patientId") Long patientId
     );
 
     @Query("select appointment "
             + "from Appointment appointment, ReservationSlot slot "
             + "where appointment.slotId = slot.slotId "
+            + "and appointment.patientId = :patientId "
             + "and appointment.caseId = :caseId "
             + "and slot.startsAt >= :minimumStartsAt "
             + "order by slot.startsAt asc")
-    List<Appointment> findActiveByCaseId(
+    List<Appointment> findActiveByPatientIdAndCaseId(
+            @Param("patientId") Long patientId,
             @Param("caseId") Long caseId,
             @Param("minimumStartsAt") LocalDateTime minimumStartsAt
     );

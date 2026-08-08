@@ -111,9 +111,13 @@ public class AppointmentController {
 
     @DeleteMapping("/{appointmentId}")
     public SuccessResponse<Void> cancelAppointment(
+            @AuthenticationPrincipal PatientDetails patientDetails,
             @PathVariable @Positive Long appointmentId
     ) {
-        appointmentService.cancelAppointment(appointmentId);
+        appointmentService.cancelAppointment(
+                patientDetails.getPatientId(),
+                appointmentId
+        );
         return SuccessResponse.empty();
     }
 }

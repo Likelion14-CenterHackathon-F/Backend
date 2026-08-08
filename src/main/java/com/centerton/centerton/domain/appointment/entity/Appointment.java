@@ -35,11 +35,14 @@ public class Appointment {
     @Column(name = "case_id", nullable = false)
     private Long caseId;
 
+    @Column(name = "patient_id", nullable = false)
+    private Long patientId;
+
     @Column(name = "slot_id", nullable = false)
     private Long slotId;
 
-    public static Appointment create(Long caseId, Long slotId) {
-        return new Appointment(null, caseId, slotId);
+    public static Appointment create(Long caseId, Long patientId, Long slotId) {
+        return new Appointment(null, caseId, patientId, slotId);
     }
 
     public void changeSlot(Long slotId) {

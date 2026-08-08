@@ -52,7 +52,8 @@ public class AppointmentService {
         LocalDateTime nowUtc = nowUtc();
 
         List<Appointment> activeAppointments =
-                appointmentRepository.findActiveByCaseId(
+                appointmentRepository.findActiveByPatientIdAndCaseId(
+                        patientId,
                         caseId,
                         nowUtc.minusMinutes(
                                 AppointmentTimePolicy.WAITING_ROOM_CLOSE_AFTER_MINUTES
@@ -177,7 +178,7 @@ public class AppointmentService {
         ZoneId zoneId = getPatientZoneId(patientId);
         LocalDateTime nowUtc = nowUtc();
 
-        ensureNoActiveAppointment(request.caseId(), nowUtc);
+        ensureNoActiveAppointment(patientId, request.caseId(), nowUtc);
 
         ReservationSlot slot = getSlotForUpdate(request.slotId());
         validateReservable(slot, nowUtc);
@@ -191,6 +192,7 @@ public class AppointmentService {
         slot.reserve();
         Appointment appointment = Appointment.create(
                 request.caseId(),
+                patientId,
                 request.slotId()
         );
 
@@ -213,7 +215,10 @@ public class AppointmentService {
         ZoneId zoneId = getPatientZoneId(patientId);
         LocalDateTime nowUtc = nowUtc();
 
-        Appointment appointment = getAppointmentForUpdate(appointmentId);
+        Appointment appointment = getAppointmentForUpdate(
+                appointmentId,
+                patientId
+        );
 
         if (appointment.getSlotId().equals(request.slotId())) {
             ReservationSlot currentSlot = getSlot(appointment.getSlotId());
@@ -263,10 +268,13 @@ public class AppointmentService {
     }
 
     @Transactional
-    public void cancelAppointment(Long appointmentId) {
+    public void cancelAppointment(Long patientId, Long appointmentId) {
         LocalDateTime nowUtc = nowUtc();
 
-        Appointment appointment = getAppointmentForUpdate(appointmentId);
+        Appointment appointment = getAppointmentForUpdate(
+                appointmentId,
+                patientId
+        );
         ReservationSlot slot = getSlotForUpdate(appointment.getSlotId());
 
         validateChangeOrCancelAllowed(slot, nowUtc);
@@ -276,11 +284,13 @@ public class AppointmentService {
     }
 
     private void ensureNoActiveAppointment(
+            Long patientId,
             Long caseId,
             LocalDateTime nowUtc
     ) {
         List<Appointment> activeAppointments =
-                appointmentRepository.findActiveByCaseId(
+                appointmentRepository.findActiveByPatientIdAndCaseId(
+                        patientId,
                         caseId,
                         nowUtc.minusMinutes(
                                 AppointmentTimePolicy.WAITING_ROOM_CLOSE_AFTER_MINUTES
@@ -312,8 +322,12 @@ public class AppointmentService {
         return result;
     }
 
-    private Appointment getAppointmentForUpdate(Long appointmentId) {
-        return appointmentRepository.findByIdForUpdate(appointmentId)
+    private Appointment getAppointmentForUpdate(
+            Long appointmentId,
+            Long patientId
+    ) {
+        return appointmentRepository
+                .findByIdAndPatientIdForUpdate(appointmentId, patientId)
                 .orElseThrow(() -> new BaseException(
                         AppointmentErrorCode.APPOINTMENT_NOT_FOUND
                 ));
