@@ -20,8 +20,9 @@ public class ConsultationJoinPolicy {
     private final AppointmentRepository appointmentRepository;
     private final ReservationSlotRepository reservationSlotRepository;
 
-    public void validateJoin(Long appointmentId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
+    public void validateJoin(Long patientId, Long appointmentId) {
+        Appointment appointment = appointmentRepository
+                .findByAppointmentIdAndPatientId(appointmentId, patientId)
                 .orElseThrow(() -> new BaseException(
                         AppointmentErrorCode.APPOINTMENT_NOT_FOUND
                 ));

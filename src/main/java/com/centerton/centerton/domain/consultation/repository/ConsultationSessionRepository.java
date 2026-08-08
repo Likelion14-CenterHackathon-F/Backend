@@ -20,5 +20,12 @@ public interface ConsultationSessionRepository extends JpaRepository<Consultatio
             @Param("appointmentId") Long appointmentId
     );
 
-    List<ConsultationSession> findAllByOrderByStartedAtDesc();
+    @Query("select session "
+            + "from ConsultationSession session, Appointment appointment "
+            + "where session.appointmentId = appointment.appointmentId "
+            + "and appointment.patientId = :patientId "
+            + "order by session.startedAt desc")
+    List<ConsultationSession> findAllByPatientIdOrderByStartedAtDesc(
+            @Param("patientId") Long patientId
+    );
 }

@@ -12,8 +12,12 @@ import com.centerton.centerton.domain.consultation.dto.response.TokenRes;
 import com.centerton.centerton.domain.consultation.dto.response.TranscriptionRes;
 import com.centerton.centerton.domain.consultation.service.CaptionService;
 import com.centerton.centerton.domain.consultation.service.ConsultationService;
+import com.centerton.centerton.global.jwt.PatientDetails;
 import com.centerton.centerton.global.response.SuccessResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
+@Validated
 @RequestMapping("/consultations")
 public class ConsultationController {
 
@@ -40,58 +45,93 @@ public class ConsultationController {
 
     @PostMapping("/{appointmentId}/join")
     public SuccessResponse<JoinConsultationRes> join(
-            @PathVariable Long appointmentId,
+            @AuthenticationPrincipal PatientDetails patientDetails,
+            @PathVariable @Positive Long appointmentId,
             @Valid @RequestBody JoinConsultationReq request
     ) {
-        return SuccessResponse.from(consultationService.join(appointmentId, request));
+        return SuccessResponse.from(consultationService.join(
+                patientDetails.getPatientId(),
+                appointmentId,
+                request
+        ));
     }
 
     @PostMapping("/{appointmentId}/token/renew")
     public SuccessResponse<TokenRes> renewToken(
-            @PathVariable Long appointmentId,
+            @AuthenticationPrincipal PatientDetails patientDetails,
+            @PathVariable @Positive Long appointmentId,
             @Valid @RequestBody TokenRenewReq request
     ) {
-        return SuccessResponse.from(consultationService.renewToken(appointmentId, request));
+        return SuccessResponse.from(consultationService.renewToken(
+                patientDetails.getPatientId(),
+                appointmentId,
+                request
+        ));
     }
 
     @PostMapping("/{appointmentId}/transcription/start")
     public SuccessResponse<TranscriptionRes> startTranscription(
-            @PathVariable Long appointmentId
+            @AuthenticationPrincipal PatientDetails patientDetails,
+            @PathVariable @Positive Long appointmentId
     ) {
-        return SuccessResponse.from(consultationService.startTranscription(appointmentId));
+        return SuccessResponse.from(consultationService.startTranscription(
+                patientDetails.getPatientId(),
+                appointmentId
+        ));
     }
 
     @GetMapping("/{appointmentId}/transcription/status")
     public SuccessResponse<TranscriptionRes> getTranscriptionStatus(
-            @PathVariable Long appointmentId
+            @AuthenticationPrincipal PatientDetails patientDetails,
+            @PathVariable @Positive Long appointmentId
     ) {
-        return SuccessResponse.from(consultationService.getTranscriptionStatus(appointmentId));
+        return SuccessResponse.from(consultationService.getTranscriptionStatus(
+                patientDetails.getPatientId(),
+                appointmentId
+        ));
     }
 
     @PostMapping("/{appointmentId}/captions/batch")
     public SuccessResponse<CaptionBatchRes> saveCaptionBatch(
-            @PathVariable Long appointmentId,
+            @AuthenticationPrincipal PatientDetails patientDetails,
+            @PathVariable @Positive Long appointmentId,
             @Valid @RequestBody CaptionBatchReq request
     ) {
-        return SuccessResponse.from(captionService.saveBatch(appointmentId, request));
+        return SuccessResponse.from(captionService.saveBatch(
+                patientDetails.getPatientId(),
+                appointmentId,
+                request
+        ));
     }
 
     @GetMapping("/{appointmentId}/captions")
     public SuccessResponse<List<CaptionRes>> getCaptions(
-            @PathVariable Long appointmentId
+            @AuthenticationPrincipal PatientDetails patientDetails,
+            @PathVariable @Positive Long appointmentId
     ) {
-        return SuccessResponse.from(captionService.getCaptions(appointmentId));
+        return SuccessResponse.from(captionService.getCaptions(
+                patientDetails.getPatientId(),
+                appointmentId
+        ));
     }
 
     @PostMapping("/{appointmentId}/end")
     public SuccessResponse<ConsultationEndRes> end(
-            @PathVariable Long appointmentId
+            @AuthenticationPrincipal PatientDetails patientDetails,
+            @PathVariable @Positive Long appointmentId
     ) {
-        return SuccessResponse.from(consultationService.end(appointmentId));
+        return SuccessResponse.from(consultationService.end(
+                patientDetails.getPatientId(),
+                appointmentId
+        ));
     }
 
     @GetMapping("/history")
-    public SuccessResponse<List<ConsultationHistoryRes>> getHistory() {
-        return SuccessResponse.from(consultationService.getHistory());
+    public SuccessResponse<List<ConsultationHistoryRes>> getHistory(
+            @AuthenticationPrincipal PatientDetails patientDetails
+    ) {
+        return SuccessResponse.from(
+                consultationService.getHistory(patientDetails.getPatientId())
+        );
     }
 }
