@@ -183,7 +183,7 @@ public class ConsultationTransactionService {
         session.registerParticipant(
                 request.role(),
                 request.agoraUid(),
-                request.userLanguage()
+                request.userLanguage().getAgoraCode()
         );
 
         session.start(joinedAt);
