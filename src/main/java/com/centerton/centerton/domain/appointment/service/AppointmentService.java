@@ -150,6 +150,10 @@ public class AppointmentService {
         int availableCount = 0;
 
         for (ReservationSlot slot : slots) {
+            if (!slot.hasValidTimeRange()) {
+                continue;
+            }
+
             boolean available = isReservable(slot, nowUtc);
 
             if (available) {
@@ -369,7 +373,7 @@ public class AppointmentService {
             LocalDateTime nowUtc
     ) {
         return slot.isAvailable()
-                && slot.getStartsAt() != null
+                && slot.hasValidTimeRange()
                 && slot.getStartsAt().isAfter(nowUtc);
     }
 

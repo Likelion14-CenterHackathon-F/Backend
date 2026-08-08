@@ -38,7 +38,21 @@ public class ReservationSlot {
             LocalDateTime startsAt,
             LocalDateTime endsAt
     ) {
+        if (startsAt == null
+                || endsAt == null
+                || !endsAt.isAfter(startsAt)) {
+            throw new IllegalArgumentException(
+                    "예약 슬롯 종료 시각은 시작 시각보다 이후여야 합니다."
+            );
+        }
+
         return new ReservationSlot(null, startsAt, endsAt, true);
+    }
+
+    public boolean hasValidTimeRange() {
+        return startsAt != null
+                && endsAt != null
+                && endsAt.isAfter(startsAt);
     }
 
     public boolean isAvailable() {
