@@ -175,7 +175,8 @@ public class AppointmentService {
             Long patientId,
             AppointmentCreateReq request
     ) {
-        ZoneId zoneId = getPatientZoneId(patientId);
+        Patient patient = getPatientForUpdate(patientId);
+        ZoneId zoneId = resolvePatientZoneId(patient);
         LocalDateTime nowUtc = nowUtc();
 
         ensureNoActiveAppointment(patientId, request.caseId(), nowUtc);
@@ -409,6 +410,17 @@ public class AppointmentService {
                         PatientErrorCode.PATIENT_NOT_FOUND
                 ));
 
+        return resolvePatientZoneId(patient);
+    }
+
+    private Patient getPatientForUpdate(Long patientId) {
+        return patientRepository.findByIdForUpdate(patientId)
+                .orElseThrow(() -> new BaseException(
+                        PatientErrorCode.PATIENT_NOT_FOUND
+                ));
+    }
+
+    private ZoneId resolvePatientZoneId(Patient patient) {
         String timezoneId = patient.getTimezoneId();
 
         if (timezoneId == null || timezoneId.isBlank()) {
