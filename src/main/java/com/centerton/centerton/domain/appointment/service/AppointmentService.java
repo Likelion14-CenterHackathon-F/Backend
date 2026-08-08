@@ -13,6 +13,7 @@ import com.centerton.centerton.domain.appointment.exception.AppointmentErrorCode
 import com.centerton.centerton.domain.appointment.policy.AppointmentTimePolicy;
 import com.centerton.centerton.domain.appointment.repository.AppointmentRepository;
 import com.centerton.centerton.domain.appointment.repository.ReservationSlotRepository;
+import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
 import com.centerton.centerton.domain.patient.entity.Patient;
 import com.centerton.centerton.domain.patient.exception.PatientErrorCode;
 import com.centerton.centerton.domain.patient.repository.PatientRepository;
@@ -42,6 +43,7 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final ReservationSlotRepository reservationSlotRepository;
     private final PatientRepository patientRepository;
+    private final ConsultationSessionRepository consultationSessionRepository;
 
     @Transactional(readOnly = true)
     public AppointmentLookupRes getAppointment(
@@ -231,6 +233,8 @@ public class AppointmentService {
             );
         }
 
+        validateConsultationNotStarted(appointmentId);
+
         Map<Long, ReservationSlot> lockedSlots = lockSlotsInOrder(
                 appointment.getSlotId(),
                 request.slotId()
@@ -276,6 +280,7 @@ public class AppointmentService {
                 appointmentId,
                 patientId
         );
+        validateConsultationNotStarted(appointmentId);
         ReservationSlot slot = getSlotForUpdate(appointment.getSlotId());
 
         validateChangeOrCancelAllowed(slot, nowUtc);
@@ -374,6 +379,14 @@ public class AppointmentService {
     ) {
         if (slot.getStartsAt() == null
                 || !slot.getStartsAt().isAfter(nowUtc)) {
+            throw new BaseException(
+                    AppointmentErrorCode.APPOINTMENT_ALREADY_STARTED
+            );
+        }
+    }
+
+    private void validateConsultationNotStarted(Long appointmentId) {
+        if (consultationSessionRepository.existsByAppointmentId(appointmentId)) {
             throw new BaseException(
                     AppointmentErrorCode.APPOINTMENT_ALREADY_STARTED
             );

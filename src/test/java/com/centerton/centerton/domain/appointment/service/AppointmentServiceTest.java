@@ -7,6 +7,7 @@ import com.centerton.centerton.domain.appointment.entity.ReservationSlot;
 import com.centerton.centerton.domain.appointment.exception.AppointmentErrorCode;
 import com.centerton.centerton.domain.appointment.repository.AppointmentRepository;
 import com.centerton.centerton.domain.appointment.repository.ReservationSlotRepository;
+import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
 import com.centerton.centerton.domain.patient.entity.Patient;
 import com.centerton.centerton.domain.patient.repository.PatientRepository;
 import com.centerton.centerton.global.exception.BaseException;
@@ -28,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,6 +51,9 @@ class AppointmentServiceTest {
     @Mock
     private PatientRepository patientRepository;
 
+    @Mock
+    private ConsultationSessionRepository consultationSessionRepository;
+
     private AppointmentService appointmentService;
 
     @BeforeEach
@@ -56,7 +61,8 @@ class AppointmentServiceTest {
         appointmentService = new AppointmentService(
                 appointmentRepository,
                 reservationSlotRepository,
-                patientRepository
+                patientRepository,
+                consultationSessionRepository
         );
     }
 
@@ -173,5 +179,56 @@ class AppointmentServiceTest {
                         any(LocalDateTime.class)
                 );
         inOrder.verify(reservationSlotRepository).findByIdForUpdate(SLOT_ID);
+    }
+
+    @Test
+    void 상담_세션이_생성된_예약은_변경할_수_없다() {
+        Patient patient = Patient.builder()
+                .id(PATIENT_ID)
+                .birthDate(java.time.LocalDate.of(2000, 1, 1))
+                .timezoneId("UTC")
+                .build();
+        Appointment appointment = Appointment.create(CASE_ID, PATIENT_ID, SLOT_ID);
+
+        when(patientRepository.findById(PATIENT_ID)).thenReturn(Optional.of(patient));
+        when(appointmentRepository.findByIdAndPatientIdForUpdate(
+                APPOINTMENT_ID,
+                PATIENT_ID
+        )).thenReturn(Optional.of(appointment));
+        when(consultationSessionRepository.existsByAppointmentId(APPOINTMENT_ID))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> appointmentService.changeAppointment(
+                PATIENT_ID,
+                APPOINTMENT_ID,
+                new AppointmentChangeReq(300L)
+        ))
+                .isInstanceOfSatisfying(BaseException.class, exception ->
+                        assertThat(exception.getBaseResponseCode())
+                                .isEqualTo(AppointmentErrorCode.APPOINTMENT_ALREADY_STARTED));
+
+        verify(reservationSlotRepository, never()).findByIdForUpdate(any());
+    }
+
+    @Test
+    void 상담_세션이_생성된_예약은_취소할_수_없다() {
+        Appointment appointment = Appointment.create(CASE_ID, PATIENT_ID, SLOT_ID);
+
+        when(appointmentRepository.findByIdAndPatientIdForUpdate(
+                APPOINTMENT_ID,
+                PATIENT_ID
+        )).thenReturn(Optional.of(appointment));
+        when(consultationSessionRepository.existsByAppointmentId(APPOINTMENT_ID))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> appointmentService.cancelAppointment(
+                PATIENT_ID,
+                APPOINTMENT_ID
+        ))
+                .isInstanceOfSatisfying(BaseException.class, exception ->
+                        assertThat(exception.getBaseResponseCode())
+                                .isEqualTo(AppointmentErrorCode.APPOINTMENT_ALREADY_STARTED));
+
+        verify(reservationSlotRepository, never()).findByIdForUpdate(any());
     }
 }

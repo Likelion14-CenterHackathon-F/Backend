@@ -14,6 +14,8 @@ public interface ConsultationSessionRepository extends JpaRepository<Consultatio
 
     Optional<ConsultationSession> findByAppointmentId(Long appointmentId);
 
+    boolean existsByAppointmentId(Long appointmentId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select session from ConsultationSession session where session.appointmentId = :appointmentId")
     Optional<ConsultationSession> findByAppointmentIdForUpdate(

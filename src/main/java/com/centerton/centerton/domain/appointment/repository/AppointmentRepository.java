@@ -37,11 +37,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     boolean existsBySlotId(Long slotId);
 
-    Optional<Appointment> findByAppointmentIdAndPatientId(
-            Long appointmentId,
-            Long patientId
-    );
-
     boolean existsByAppointmentIdAndPatientId(
             Long appointmentId,
             Long patientId

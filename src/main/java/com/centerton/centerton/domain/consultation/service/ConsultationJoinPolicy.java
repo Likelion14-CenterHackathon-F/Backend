@@ -22,7 +22,7 @@ public class ConsultationJoinPolicy {
 
     public void validateJoin(Long patientId, Long appointmentId) {
         Appointment appointment = appointmentRepository
-                .findByAppointmentIdAndPatientId(appointmentId, patientId)
+                .findByIdAndPatientIdForUpdate(appointmentId, patientId)
                 .orElseThrow(() -> new BaseException(
                         AppointmentErrorCode.APPOINTMENT_NOT_FOUND
                 ));

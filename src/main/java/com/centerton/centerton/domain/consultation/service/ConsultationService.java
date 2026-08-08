@@ -34,7 +34,6 @@ public class ConsultationService {
     private final ConsultationSessionRepository sessionRepository;
     private final TranscriptSegmentRepository transcriptRepository;
     private final AppointmentAccessPolicy appointmentAccessPolicy;
-    private final ConsultationJoinPolicy joinPolicy;
     private final ConsultationTransactionService transactionService;
     private final AgoraRtcTokenService rtcTokenService;
     private final AgoraSttClient sttClient;
@@ -44,7 +43,6 @@ public class ConsultationService {
             ConsultationSessionRepository sessionRepository,
             TranscriptSegmentRepository transcriptRepository,
             AppointmentAccessPolicy appointmentAccessPolicy,
-            ConsultationJoinPolicy joinPolicy,
             ConsultationTransactionService transactionService,
             AgoraRtcTokenService rtcTokenService,
             AgoraSttClient sttClient,
@@ -53,7 +51,6 @@ public class ConsultationService {
         this.sessionRepository = sessionRepository;
         this.transcriptRepository = transcriptRepository;
         this.appointmentAccessPolicy = appointmentAccessPolicy;
-        this.joinPolicy = joinPolicy;
         this.transactionService = transactionService;
         this.rtcTokenService = rtcTokenService;
         this.sttClient = sttClient;
@@ -72,14 +69,13 @@ public class ConsultationService {
             Long appointmentId,
             JoinConsultationReq request
     ) {
-        joinPolicy.validateJoin(patientId, appointmentId);
-
         LocalDateTime joinedAt = nowUtc();
 
         ConsultationSession session;
 
         try {
             session = transactionService.joinOrCreate(
+                    patientId,
                     appointmentId,
                     request,
                     generateChannelName(appointmentId),
@@ -95,6 +91,7 @@ public class ConsultationService {
              * 4. 이미 생성된 세션을 재조회해 참여자 등록
              */
             session = transactionService.joinExisting(
+                            patientId,
                             appointmentId,
                             request,
                             joinedAt
