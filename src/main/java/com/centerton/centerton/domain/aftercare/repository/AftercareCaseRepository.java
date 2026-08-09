@@ -8,6 +8,6 @@ import java.util.Optional;
 
 public interface AftercareCaseRepository extends JpaRepository<AftercareCase, Long> {
 
-    @EntityGraph(attributePaths = {"patient", "procedureRecord"})
+    @EntityGraph(attributePaths = {"patient", "procedureRecord", "recoveryStageGuides"})
     Optional<AftercareCase> findByPatientId(Long patientId);
 }
