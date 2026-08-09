@@ -75,7 +75,7 @@ public class PreconsultSubmissionService {
         validateAppointmentOwner(patientId, appointmentId);
 
         PreconsultSubmission submission = submissionRepository
-                .findByAppointmentId(appointmentId)
+                .findByAppointmentAppointmentId(appointmentId)
                 .orElseThrow(() -> new BaseException(
                         PreconsultSubmissionErrorCode.SUBMISSION_NOT_FOUND
                 ));

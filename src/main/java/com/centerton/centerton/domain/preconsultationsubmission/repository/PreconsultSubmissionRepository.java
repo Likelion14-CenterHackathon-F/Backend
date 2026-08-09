@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public interface PreconsultSubmissionRepository extends JpaRepository<PreconsultSubmission, Long> {
 
-    boolean existsByAppointmentId(Long appointmentId);
+    boolean existsByAppointmentAppointmentId(Long appointmentId);
 
-    Optional<PreconsultSubmission> findByAppointmentId(Long appointmentId);
+    Optional<PreconsultSubmission> findByAppointmentAppointmentId(Long appointmentId);
 }

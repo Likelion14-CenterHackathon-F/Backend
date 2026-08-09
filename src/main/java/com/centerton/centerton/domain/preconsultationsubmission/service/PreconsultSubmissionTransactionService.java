@@ -49,7 +49,7 @@ public class PreconsultSubmissionTransactionService {
         PreconsultSubmission submission = submissionRepository.saveAndFlush(
                 PreconsultSubmission.create(
                         symptomNote,
-                        appointment.getAppointmentId()
+                        appointment
                 )
         );
 
@@ -104,7 +104,9 @@ public class PreconsultSubmissionTransactionService {
     }
 
     private void validateSubmissionNotExists(Long appointmentId) {
-        if (submissionRepository.existsByAppointmentId(appointmentId)) {
+        if (submissionRepository.existsByAppointmentAppointmentId(
+                appointmentId
+        )) {
             throw new BaseException(
                     PreconsultSubmissionErrorCode.SUBMISSION_ALREADY_EXISTS
             );

@@ -15,7 +15,7 @@ public interface FileAssetRepository extends JpaRepository<FileAsset, Long> {
     @Query("select fileAsset "
             + "from FileAsset fileAsset, PreconsultSubmission submission, Appointment appointment "
             + "where fileAsset.submissionId = submission.submissionId "
-            + "and submission.appointmentId = appointment.appointmentId "
+            + "and submission.appointment.appointmentId = appointment.appointmentId "
             + "and fileAsset.fileUrl = :fileUrl "
             + "and appointment.patientId = :patientId")
     Optional<FileAsset> findAccessibleFile(
