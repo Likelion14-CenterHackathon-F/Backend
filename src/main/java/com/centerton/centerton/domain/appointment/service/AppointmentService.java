@@ -194,6 +194,7 @@ public class AppointmentService {
         ZoneId zoneId = resolvePatientZoneId(patient);
         LocalDateTime nowUtc = nowUtc();
 
+        // TODO: case 도메인 구현 후 caseId와 patientId 기준으로 소유권을 검증합니다.
         ensureNoActiveAppointment(patientId, request.caseId(), nowUtc);
 
         ReservationSlot slot = getSlotForUpdate(request.slotId());
