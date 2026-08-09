@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 @Service
@@ -106,11 +107,12 @@ public class AppointmentService {
                                 fromUtc,
                                 toUtc
                         );
+        Set<Long> occupiedSlotIds = findOccupiedSlotIds(slots);
 
         Map<LocalDate, Integer> availableCounts = new TreeMap<>();
 
         for (ReservationSlot slot : slots) {
-            if (!isReservable(slot, nowUtc)) {
+            if (!isReservable(slot, nowUtc, occupiedSlotIds)) {
                 continue;
             }
 
@@ -147,6 +149,7 @@ public class AppointmentService {
                                 fromUtc,
                                 toUtc
                         );
+        Set<Long> occupiedSlotIds = findOccupiedSlotIds(slots);
 
         List<AvailableSlotRes> responses = new ArrayList<>(slots.size());
         int availableCount = 0;
@@ -156,7 +159,11 @@ public class AppointmentService {
                 continue;
             }
 
-            boolean available = isReservable(slot, nowUtc);
+            boolean available = isReservable(
+                    slot,
+                    nowUtc,
+                    occupiedSlotIds
+            );
 
             if (available) {
                 availableCount++;
@@ -380,6 +387,27 @@ public class AppointmentService {
         return slot.isAvailable()
                 && slot.hasValidTimeRange()
                 && slot.getStartsAt().isAfter(nowUtc);
+    }
+
+    private boolean isReservable(
+            ReservationSlot slot,
+            LocalDateTime nowUtc,
+            Set<Long> occupiedSlotIds
+    ) {
+        return isReservable(slot, nowUtc)
+                && !occupiedSlotIds.contains(slot.getSlotId());
+    }
+
+    private Set<Long> findOccupiedSlotIds(List<ReservationSlot> slots) {
+        if (slots.isEmpty()) {
+            return Set.of();
+        }
+
+        return appointmentRepository.findOccupiedSlotIds(
+                slots.stream()
+                        .map(ReservationSlot::getSlotId)
+                        .toList()
+        );
     }
 
     private void validateChangeOrCancelAllowed(

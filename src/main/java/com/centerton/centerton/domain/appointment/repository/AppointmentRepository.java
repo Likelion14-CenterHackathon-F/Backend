@@ -8,8 +8,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
@@ -41,6 +43,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     );
 
     boolean existsBySlotId(Long slotId);
+
+    @Query("select appointment.slotId from Appointment appointment "
+            + "where appointment.slotId in :slotIds")
+    Set<Long> findOccupiedSlotIds(
+            @Param("slotIds") Collection<Long> slotIds
+    );
 
     boolean existsByAppointmentIdAndPatientId(
             Long appointmentId,
