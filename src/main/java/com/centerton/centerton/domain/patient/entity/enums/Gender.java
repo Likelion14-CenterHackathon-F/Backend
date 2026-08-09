@@ -9,16 +9,21 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum Gender {
 
-    MALE("남성"),
-    FEMALE("여성"),
-    OTHER("기타"),
-    UNKNOWN("알 수 없음");
+    MALE("남성", "Male"),
+    FEMALE("여성", "Female"),
+    OTHER("기타", "Other"),
+    UNKNOWN("알 수 없음", "Unknown");
 
     private final String value;
+    private final String englishValue;
 
     @JsonValue
     public String getValue() {
         return value;
+    }
+
+    public String getDisplayName() {
+        return value + " (" + englishValue + ")";
     }
 
     @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
