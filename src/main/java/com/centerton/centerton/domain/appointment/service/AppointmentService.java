@@ -17,6 +17,7 @@ import com.centerton.centerton.domain.consultation.repository.ConsultationSessio
 import com.centerton.centerton.domain.patient.entity.Patient;
 import com.centerton.centerton.domain.patient.exception.PatientErrorCode;
 import com.centerton.centerton.domain.patient.repository.PatientRepository;
+import com.centerton.centerton.domain.preconsultationsubmission.service.PreconsultSubmissionCleanupService;
 import com.centerton.centerton.global.exception.BaseException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -44,6 +45,7 @@ public class AppointmentService {
     private final ReservationSlotRepository reservationSlotRepository;
     private final PatientRepository patientRepository;
     private final ConsultationSessionRepository consultationSessionRepository;
+    private final PreconsultSubmissionCleanupService preconsultSubmissionCleanupService;
 
     @Transactional(readOnly = true)
     public AppointmentLookupRes getAppointment(
@@ -289,6 +291,9 @@ public class AppointmentService {
 
         validateChangeOrCancelAllowed(slot, nowUtc);
 
+        preconsultSubmissionCleanupService.deleteByAppointmentId(
+                appointment.getAppointmentId()
+        );
         appointmentRepository.delete(appointment);
         slot.release();
     }
