@@ -42,21 +42,13 @@ public class PatientAllergy extends BaseEntity {
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
-    private PatientAllergy(
-            Patient patient,
-            String allergenName,
-            String allergenEnglishName
-    ) {
+    private PatientAllergy(Patient patient, String allergenName, String allergenEnglishName) {
         this.patient = patient;
         this.allergenName = allergenName;
         this.allergenEnglishName = allergenEnglishName;
     }
 
-    public static PatientAllergy create(
-            Patient patient,
-            String allergenName,
-            String allergenEnglishName
-    ) {
+    public static PatientAllergy create(Patient patient, String allergenName, String allergenEnglishName) {
         return new PatientAllergy(patient, allergenName, allergenEnglishName);
     }
 }

@@ -83,13 +83,6 @@ public class ProcedureRecord extends BaseEntity {
             String materials,
             String medications
     ) {
-        return new ProcedureRecord(
-                aftercareCase,
-                procedureDate,
-                procedureName,
-                procedureEnglishName,
-                materials,
-                medications
-        );
+        return new ProcedureRecord(aftercareCase, procedureDate, procedureName, procedureEnglishName, materials, medications);
     }
 }

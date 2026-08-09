@@ -85,21 +85,13 @@ public class AftercareCase extends BaseEntity {
     )
     private List<RecoveryStageGuide> recoveryStageGuides = new ArrayList<>();
 
-    private AftercareCase(
-            Patient patient,
-            LocalDate aftercareStartDate,
-            Integer totalCareDays
-    ) {
+    private AftercareCase(Patient patient, LocalDate aftercareStartDate, Integer totalCareDays) {
         this.patient = patient;
         this.aftercareStartDate = aftercareStartDate;
         this.totalCareDays = totalCareDays;
     }
 
-    public static AftercareCase create(
-            Patient patient,
-            LocalDate aftercareStartDate,
-            Integer totalCareDays
-    ) {
+    public static AftercareCase create(Patient patient, LocalDate aftercareStartDate, Integer totalCareDays) {
         return new AftercareCase(patient, aftercareStartDate, totalCareDays);
     }
 
@@ -110,21 +102,11 @@ public class AftercareCase extends BaseEntity {
             String materials,
             String medications
     ) {
-        procedureRecord = ProcedureRecord.create(
-                this,
-                procedureDate,
-                procedureName,
-                procedureEnglishName,
-                materials,
-                medications
-        );
+        procedureRecord = ProcedureRecord.create(this, procedureDate, procedureName, procedureEnglishName, materials, medications);
         return procedureRecord;
     }
 
-    public void updateEmergencyContacts(
-            String clinicPhoneNumber,
-            String guardianPhoneNumber
-    ) {
+    public void updateEmergencyContacts(String clinicPhoneNumber, String guardianPhoneNumber) {
         this.clinicPhoneNumber = clinicPhoneNumber;
         this.guardianPhoneNumber = guardianPhoneNumber;
     }
@@ -135,15 +117,7 @@ public class AftercareCase extends BaseEntity {
             Integer endDay,
             String guideContent
     ) {
-        recoveryStageGuides.add(
-                RecoveryStageGuide.create(
-                        this,
-                        recoveryStage,
-                        startDay,
-                        endDay,
-                        guideContent
-                )
-        );
+        recoveryStageGuides.add(RecoveryStageGuide.create(this, recoveryStage, startDay, endDay, guideContent));
     }
 
     public RecoveryStage calculateRecoveryStage(LocalDate referenceDate) {

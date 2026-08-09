@@ -80,13 +80,7 @@ public class RecoveryStageGuide extends BaseEntity {
             Integer endDay,
             String guideContent
     ) {
-        return new RecoveryStageGuide(
-                aftercareCase,
-                recoveryStage,
-                startDay,
-                endDay,
-                guideContent
-        );
+        return new RecoveryStageGuide(aftercareCase, recoveryStage, startDay, endDay, guideContent);
     }
 
     public boolean includes(int aftercareDay) {
