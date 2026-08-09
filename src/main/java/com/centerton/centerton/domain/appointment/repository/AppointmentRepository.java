@@ -22,6 +22,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("patientId") Long patientId
     );
 
+    Optional<Appointment> findByAppointmentIdAndPatientId(
+            Long appointmentId,
+            Long patientId
+    );
+
     @Query("select appointment "
             + "from Appointment appointment, ReservationSlot slot "
             + "where appointment.slotId = slot.slotId "

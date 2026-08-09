@@ -31,6 +31,24 @@ public class PreconsultSubmissionTransactionService {
     private final PreconsultSubmissionRepository submissionRepository;
     private final FileAssetRepository fileAssetRepository;
 
+    @Transactional(readOnly = true)
+    public void validateSubmissionRequest(
+            Long patientId,
+            Long appointmentId
+    ) {
+        Appointment appointment = appointmentRepository
+                .findByAppointmentIdAndPatientId(
+                        appointmentId,
+                        patientId
+                )
+                .orElseThrow(() -> new BaseException(
+                        PreconsultSubmissionErrorCode.APPOINTMENT_NOT_FOUND
+                ));
+
+        validateConsultationNotStarted(appointment);
+        validateSubmissionNotExists(appointmentId);
+    }
+
     @Transactional
     public PreconsultSubmissionRes createSubmission(
             Long patientId,

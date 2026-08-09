@@ -47,6 +47,10 @@ public class PreconsultSubmissionService {
         List<MultipartFile> files = resolveFiles(request.getFiles());
 
         validateSubmissionContent(symptomNote, files);
+        transactionService.validateSubmissionRequest(
+                patientId,
+                request.getAppointmentId()
+        );
 
         List<StoredPreconsultFile> storedFiles = new ArrayList<>(files.size());
 
