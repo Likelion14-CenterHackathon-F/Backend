@@ -1,5 +1,6 @@
 package com.centerton.centerton.domain.consultation.service;
 
+import com.centerton.centerton.domain.appointment.policy.AppointmentAccessPolicy;
 import com.centerton.centerton.domain.consultation.dto.request.CaptionBatchReq;
 import com.centerton.centerton.domain.consultation.dto.request.CaptionItemReq;
 import com.centerton.centerton.domain.consultation.dto.response.CaptionBatchRes;
@@ -23,17 +24,25 @@ public class CaptionService {
 
     private final ConsultationSessionRepository sessionRepository;
     private final TranscriptSegmentRepository transcriptRepository;
+    private final AppointmentAccessPolicy appointmentAccessPolicy;
 
     public CaptionService(
             ConsultationSessionRepository sessionRepository,
-            TranscriptSegmentRepository transcriptRepository
+            TranscriptSegmentRepository transcriptRepository,
+            AppointmentAccessPolicy appointmentAccessPolicy
     ) {
         this.sessionRepository = sessionRepository;
         this.transcriptRepository = transcriptRepository;
+        this.appointmentAccessPolicy = appointmentAccessPolicy;
     }
 
     @Transactional
-    public CaptionBatchRes saveBatch(Long appointmentId, CaptionBatchReq request) {
+    public CaptionBatchRes saveBatch(
+            Long patientId,
+            Long appointmentId,
+            CaptionBatchReq request
+    ) {
+        appointmentAccessPolicy.validateAccess(patientId, appointmentId);
         ConsultationSession session = getSession(appointmentId);
         validateSessionId(session, request.sessionId());
 
@@ -87,7 +96,8 @@ public class CaptionService {
         return new CaptionBatchRes(request.captions().size(), insertedCount, updatedCount);
     }
 
-    public List<CaptionRes> getCaptions(Long appointmentId) {
+    public List<CaptionRes> getCaptions(Long patientId, Long appointmentId) {
+        appointmentAccessPolicy.validateAccess(patientId, appointmentId);
         ConsultationSession session = getSession(appointmentId);
 
         return transcriptRepository
