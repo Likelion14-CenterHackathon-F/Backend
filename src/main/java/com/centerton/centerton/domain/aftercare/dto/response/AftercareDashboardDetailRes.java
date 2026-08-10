@@ -6,7 +6,6 @@ import com.centerton.centerton.domain.aftercare.entity.RecoveryStageGuide;
 import com.centerton.centerton.domain.aftercare.entity.enums.RecoveryStage;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,7 +17,7 @@ public record AftercareDashboardDetailRes(
 ) {
 
     public static AftercareDashboardDetailRes from(AftercareCase aftercareCase, LocalDate referenceDate) {
-        int currentDay = calculateCurrentDay(aftercareCase, referenceDate);
+        int currentDay = aftercareCase.calculateCurrentDay(referenceDate);
         ProcedureRecord procedureRecord = aftercareCase.getProcedureRecord();
 
         return new AftercareDashboardDetailRes(
@@ -27,7 +26,7 @@ public record AftercareDashboardDetailRes(
                 aftercareCase.getRecoveryStageGuides().stream()
                         .map(guide -> RecoveryGuide.from(guide, currentDay))
                         .toList(),
-                RedFlags.defaultRedFlags()
+                RedFlags.from(aftercareCase.getRedFlagSigns())
         );
     }
 
@@ -67,7 +66,7 @@ public record AftercareDashboardDetailRes(
                     guide.getRecoveryStage(),
                     guide.getStartDay(),
                     guide.getEndDay(),
-                    toGuideItems(guide.getGuideContent()),
+                    toLineItems(guide.getGuideContent()),
                     guideStatus.name()
             );
         }
@@ -75,14 +74,8 @@ public record AftercareDashboardDetailRes(
 
     public record RedFlags(List<String> items) {
 
-        private static RedFlags defaultRedFlags() {
-            return new RedFlags(
-                    List.of(
-                            "38.5°C 이상의 발열이 지속되는 경우",
-                            "상처 부위에서 비정상적인 출혈 또는 분비물",
-                            "심한 통증이 갑자기 악화되는 경우"
-                    )
-            );
+        private static RedFlags from(String redFlagSigns) {
+            return new RedFlags(toLineItems(redFlagSigns));
         }
     }
 
@@ -102,19 +95,12 @@ public record AftercareDashboardDetailRes(
         }
     }
 
-    private static int calculateCurrentDay(AftercareCase aftercareCase, LocalDate referenceDate) {
-        if (aftercareCase.getAftercareStartDate() == null || referenceDate == null) {
-            return 1;
-        }
-        return Math.max((int) ChronoUnit.DAYS.between(aftercareCase.getAftercareStartDate(), referenceDate) + 1, 1);
-    }
-
-    private static List<String> toGuideItems(String guideContent) {
-        if (guideContent == null || guideContent.isBlank()) {
+    private static List<String> toLineItems(String content) {
+        if (content == null || content.isBlank()) {
             return List.of();
         }
 
-        return Arrays.stream(guideContent.split("\\R"))
+        return Arrays.stream(content.split("\\R"))
                 .map(String::trim)
                 .filter(line -> !line.isBlank())
                 .map(line -> line.startsWith("•") ? line.substring(1).trim() : line)

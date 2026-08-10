@@ -54,6 +54,10 @@ public class AftercareCase extends BaseEntity {
     @Column(name = "total_care_days")
     private Integer totalCareDays;
 
+    // 사후관리 상세 화면의 "즉시 병원에 연락해야 하는 위험 신호" 목록. 줄바꿈 기준으로 여러 항목 저장.
+    @Column(name = "red_flag_signs", columnDefinition = "TEXT")
+    private String redFlagSigns;
+
     // 응급실 요약 리포트의 "시술 병원(Clinic Hotline)" 연락처.
     @Column(name = "clinic_phone_number")
     private String clinicPhoneNumber;
@@ -111,6 +115,10 @@ public class AftercareCase extends BaseEntity {
         this.guardianPhoneNumber = guardianPhoneNumber;
     }
 
+    public void updateRedFlagSigns(String redFlagSigns) {
+        this.redFlagSigns = redFlagSigns;
+    }
+
     public void addRecoveryStageGuide(
             RecoveryStage recoveryStage,
             Integer startDay,
@@ -120,12 +128,19 @@ public class AftercareCase extends BaseEntity {
         recoveryStageGuides.add(RecoveryStageGuide.create(this, recoveryStage, startDay, endDay, guideContent));
     }
 
+    public int calculateCurrentDay(LocalDate referenceDate) {
+        if (aftercareStartDate == null || referenceDate == null) {
+            return 1;
+        }
+        return Math.max((int) ChronoUnit.DAYS.between(aftercareStartDate, referenceDate) + 1, 1);
+    }
+
     public RecoveryStage calculateRecoveryStage(LocalDate referenceDate) {
         if (aftercareStartDate == null || referenceDate == null) {
             return null;
         }
 
-        int aftercareDay = (int) ChronoUnit.DAYS.between(aftercareStartDate, referenceDate) + 1;
+        int aftercareDay = calculateCurrentDay(referenceDate);
 
         return recoveryStageGuides.stream()
                 .filter(guide -> guide.includes(aftercareDay))

@@ -26,14 +26,14 @@ public class AftercareService {
     private final PatientAllergyRepository patientAllergyRepository;
 
     public AftercareDashboardDetailRes getDashboardDetail(Long patientId) {
-        AftercareCase aftercareCase = getAftercareCase(patientId);
+        AftercareCase aftercareCase = getDashboardAftercareCase(patientId);
         validateProcedureRecord(aftercareCase);
 
         return AftercareDashboardDetailRes.from(aftercareCase, resolveToday(aftercareCase));
     }
 
     public EmergencyMedicalReportRes getEmergencyMedicalReport(Long patientId) {
-        AftercareCase aftercareCase = getAftercareCase(patientId);
+        AftercareCase aftercareCase = getEmergencyReportAftercareCase(patientId);
         validateProcedureRecord(aftercareCase);
 
         List<PatientAllergy> allergies = patientAllergyRepository.findAllByPatientIdOrderByAllergyIdAsc(patientId);
@@ -41,8 +41,13 @@ public class AftercareService {
         return EmergencyMedicalReportRes.from(aftercareCase, allergies);
     }
 
-    private AftercareCase getAftercareCase(Long patientId) {
-        return aftercareCaseRepository.findByPatientId(patientId)
+    private AftercareCase getDashboardAftercareCase(Long patientId) {
+        return aftercareCaseRepository.findDashboardByPatientId(patientId)
+                .orElseThrow(() -> new BaseException(AftercareErrorCode.AFTERCARE_CASE_NOT_FOUND));
+    }
+
+    private AftercareCase getEmergencyReportAftercareCase(Long patientId) {
+        return aftercareCaseRepository.findEmergencyReportByPatientId(patientId)
                 .orElseThrow(() -> new BaseException(AftercareErrorCode.AFTERCARE_CASE_NOT_FOUND));
     }
 
