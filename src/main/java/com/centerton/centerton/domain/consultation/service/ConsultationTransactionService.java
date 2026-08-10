@@ -24,20 +24,26 @@ import java.util.Optional;
 public class ConsultationTransactionService {
 
     private final ConsultationSessionRepository sessionRepository;
+    private final ConsultationJoinPolicy joinPolicy;
 
     public ConsultationTransactionService(
-            ConsultationSessionRepository sessionRepository
+            ConsultationSessionRepository sessionRepository,
+            ConsultationJoinPolicy joinPolicy
     ) {
         this.sessionRepository = sessionRepository;
+        this.joinPolicy = joinPolicy;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ConsultationSession joinOrCreate(
+            Long patientId,
             Long appointmentId,
             JoinConsultationReq request,
             String rtcChannelName,
             LocalDateTime joinedAt
     ) {
+        joinPolicy.validateJoin(patientId, appointmentId);
+
         ConsultationSession session = sessionRepository
                 .findByAppointmentIdForUpdate(appointmentId)
                 .orElseGet(() -> ConsultationSession.create(
@@ -56,10 +62,13 @@ public class ConsultationTransactionService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Optional<ConsultationSession> joinExisting(
+            Long patientId,
             Long appointmentId,
             JoinConsultationReq request,
             LocalDateTime joinedAt
     ) {
+        joinPolicy.validateJoin(patientId, appointmentId);
+
         return sessionRepository.findByAppointmentIdForUpdate(appointmentId)
                 .map(session -> {
                     registerParticipant(session, request, joinedAt);

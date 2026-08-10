@@ -14,11 +14,20 @@ public interface ConsultationSessionRepository extends JpaRepository<Consultatio
 
     Optional<ConsultationSession> findByAppointmentId(Long appointmentId);
 
+    boolean existsByAppointmentId(Long appointmentId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select session from ConsultationSession session where session.appointmentId = :appointmentId")
     Optional<ConsultationSession> findByAppointmentIdForUpdate(
             @Param("appointmentId") Long appointmentId
     );
 
-    List<ConsultationSession> findAllByOrderByStartedAtDesc();
+    @Query("select session "
+            + "from ConsultationSession session, Appointment appointment "
+            + "where session.appointmentId = appointment.appointmentId "
+            + "and appointment.patientId = :patientId "
+            + "order by session.startedAt desc")
+    List<ConsultationSession> findAllByPatientIdOrderByStartedAtDesc(
+            @Param("patientId") Long patientId
+    );
 }

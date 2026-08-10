@@ -1,5 +1,6 @@
 package com.centerton.centerton.domain.consultation.service;
 
+import com.centerton.centerton.domain.appointment.policy.AppointmentAccessPolicy;
 import com.centerton.centerton.domain.consultation.client.AgoraSttClient;
 import com.centerton.centerton.domain.consultation.config.AgoraProperties;
 import com.centerton.centerton.domain.consultation.dto.request.JoinConsultationReq;
@@ -32,7 +33,7 @@ public class ConsultationService {
 
     private final ConsultationSessionRepository sessionRepository;
     private final TranscriptSegmentRepository transcriptRepository;
-    private final ConsultationJoinPolicy joinPolicy;
+    private final AppointmentAccessPolicy appointmentAccessPolicy;
     private final ConsultationTransactionService transactionService;
     private final AgoraRtcTokenService rtcTokenService;
     private final AgoraSttClient sttClient;
@@ -41,7 +42,7 @@ public class ConsultationService {
     public ConsultationService(
             ConsultationSessionRepository sessionRepository,
             TranscriptSegmentRepository transcriptRepository,
-            ConsultationJoinPolicy joinPolicy,
+            AppointmentAccessPolicy appointmentAccessPolicy,
             ConsultationTransactionService transactionService,
             AgoraRtcTokenService rtcTokenService,
             AgoraSttClient sttClient,
@@ -49,7 +50,7 @@ public class ConsultationService {
     ) {
         this.sessionRepository = sessionRepository;
         this.transcriptRepository = transcriptRepository;
-        this.joinPolicy = joinPolicy;
+        this.appointmentAccessPolicy = appointmentAccessPolicy;
         this.transactionService = transactionService;
         this.rtcTokenService = rtcTokenService;
         this.sttClient = sttClient;
@@ -64,17 +65,17 @@ public class ConsultationService {
      * 짧은 트랜잭션에서 처리합니다.
      */
     public JoinConsultationRes join(
+            Long patientId,
             Long appointmentId,
             JoinConsultationReq request
     ) {
-        joinPolicy.validateJoin(appointmentId);
-
         LocalDateTime joinedAt = nowUtc();
 
         ConsultationSession session;
 
         try {
             session = transactionService.joinOrCreate(
+                    patientId,
                     appointmentId,
                     request,
                     generateChannelName(appointmentId),
@@ -90,6 +91,7 @@ public class ConsultationService {
              * 4. 이미 생성된 세션을 재조회해 참여자 등록
              */
             session = transactionService.joinExisting(
+                            patientId,
                             appointmentId,
                             request,
                             joinedAt
@@ -122,9 +124,11 @@ public class ConsultationService {
 
     @Transactional(readOnly = true)
     public TokenRes renewToken(
+            Long patientId,
             Long appointmentId,
             TokenRenewReq request
     ) {
+        appointmentAccessPolicy.validateAccess(patientId, appointmentId);
         ConsultationSession session = getSession(appointmentId);
 
         if (session.isCompleted()) {
@@ -160,7 +164,12 @@ public class ConsultationService {
      * 2. 트랜잭션 밖에서 Agora API 호출
      * 3. 성공 또는 실패 상태를 새로운 트랜잭션으로 저장
      */
-    public TranscriptionRes startTranscription(Long appointmentId) {
+    public TranscriptionRes startTranscription(
+            Long patientId,
+            Long appointmentId
+    ) {
+        appointmentAccessPolicy.validateAccess(patientId, appointmentId);
+
         ConsultationTransactionService.SttStartPreparation preparation =
                 transactionService.prepareSttStart(appointmentId);
 
@@ -201,7 +210,11 @@ public class ConsultationService {
     }
 
     @Transactional(readOnly = true)
-    public TranscriptionRes getTranscriptionStatus(Long appointmentId) {
+    public TranscriptionRes getTranscriptionStatus(
+            Long patientId,
+            Long appointmentId
+    ) {
+        appointmentAccessPolicy.validateAccess(patientId, appointmentId);
         return toTranscriptionRes(getSession(appointmentId));
     }
 
@@ -210,7 +223,9 @@ public class ConsultationService {
      * <p>
      * STT Agent 종료 실패가 상담 자체의 종료를 막지 않도록 처리합니다.
      */
-    public ConsultationEndRes end(Long appointmentId) {
+    public ConsultationEndRes end(Long patientId, Long appointmentId) {
+        appointmentAccessPolicy.validateAccess(patientId, appointmentId);
+
         ConsultationTransactionService.ConsultationEndPreparation preparation =
                 transactionService.prepareEnd(appointmentId);
 
@@ -256,8 +271,8 @@ public class ConsultationService {
     }
 
     @Transactional(readOnly = true)
-    public List<ConsultationHistoryRes> getHistory() {
-        return sessionRepository.findAllByOrderByStartedAtDesc()
+    public List<ConsultationHistoryRes> getHistory(Long patientId) {
+        return sessionRepository.findAllByPatientIdOrderByStartedAtDesc(patientId)
                 .stream()
                 .map(session -> new ConsultationHistoryRes(
                         session.getAppointmentId(),
