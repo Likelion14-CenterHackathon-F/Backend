@@ -6,8 +6,8 @@ import com.centerton.centerton.domain.aftercare.dto.response.EmergencyMedicalRep
 import com.centerton.centerton.domain.aftercare.entity.AftercareCase;
 import com.centerton.centerton.domain.aftercare.exception.AftercareErrorCode;
 import com.centerton.centerton.domain.aftercare.repository.AftercareCaseRepository;
-import com.centerton.centerton.domain.appointment.dto.response.AppointmentLookupRes;
-import com.centerton.centerton.domain.appointment.service.AppointmentService;
+import com.centerton.centerton.domain.appointment.dto.response.AppointmentHomeSummary;
+import com.centerton.centerton.domain.appointment.service.AppointmentQueryService;
 import com.centerton.centerton.domain.patient.entity.PatientAllergy;
 import com.centerton.centerton.domain.patient.repository.PatientAllergyRepository;
 import com.centerton.centerton.global.exception.BaseException;
@@ -15,9 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.DateTimeException;
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -27,22 +26,27 @@ public class AftercareService {
 
     private final AftercareCaseRepository aftercareCaseRepository;
     private final PatientAllergyRepository patientAllergyRepository;
-    private final AppointmentService appointmentService;
+    private final AppointmentQueryService appointmentQueryService;
 
     public AftercareHomeRes getHome(Long patientId) {
         AftercareCase aftercareCase = getHomeAftercareCase(patientId);
         validateProcedureRecord(aftercareCase);
 
-        AppointmentLookupRes appointmentLookup = appointmentService.getAppointment(patientId, aftercareCase.getCaseId());
+        AppointmentHomeSummary appointment = appointmentQueryService.findHomeAppointment(
+                patientId,
+                aftercareCase.getCaseId()
+        ).orElse(null);
 
-        return AftercareHomeRes.from(aftercareCase, resolveToday(aftercareCase), appointmentLookup);
+        // TODO: 환자 국적/언어 기준으로 홈 화면 응답을 번역해서 반환.
+        return AftercareHomeRes.from(aftercareCase, resolveToday(), appointment);
     }
 
     public AftercareDashboardDetailRes getDashboardDetail(Long patientId) {
         AftercareCase aftercareCase = getDashboardAftercareCase(patientId);
         validateProcedureRecord(aftercareCase);
 
-        return AftercareDashboardDetailRes.from(aftercareCase, resolveToday(aftercareCase));
+        // TODO: 환자 국적/언어 기준으로 사후관리 상세 응답을 번역해서 반환.
+        return AftercareDashboardDetailRes.from(aftercareCase, resolveToday());
     }
 
     public EmergencyMedicalReportRes getEmergencyMedicalReport(Long patientId) {
@@ -75,12 +79,7 @@ public class AftercareService {
         }
     }
 
-    private LocalDate resolveToday(AftercareCase aftercareCase) {
-        try {
-            String timezoneId = aftercareCase.getPatient().getTimezoneId();
-            return LocalDate.now(timezoneId == null ? ZoneId.of("Asia/Seoul") : ZoneId.of(timezoneId));
-        } catch (DateTimeException exception) {
-            return LocalDate.now(ZoneId.of("Asia/Seoul"));
-        }
+    private LocalDate resolveToday() {
+        return LocalDate.now(ZoneOffset.UTC);
     }
 }

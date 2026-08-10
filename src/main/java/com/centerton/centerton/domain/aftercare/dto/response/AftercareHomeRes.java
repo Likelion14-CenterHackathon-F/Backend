@@ -2,8 +2,7 @@ package com.centerton.centerton.domain.aftercare.dto.response;
 
 import com.centerton.centerton.domain.aftercare.entity.AftercareCase;
 import com.centerton.centerton.domain.aftercare.entity.ProcedureRecord;
-import com.centerton.centerton.domain.appointment.dto.response.AppointmentDetailRes;
-import com.centerton.centerton.domain.appointment.dto.response.AppointmentLookupRes;
+import com.centerton.centerton.domain.appointment.dto.response.AppointmentHomeSummary;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -18,7 +17,7 @@ public record AftercareHomeRes(
     public static AftercareHomeRes from(
             AftercareCase aftercareCase,
             LocalDate referenceDate,
-            AppointmentLookupRes appointmentLookup
+            AppointmentHomeSummary appointment
     ) {
         int currentDay = aftercareCase.calculateCurrentDay(referenceDate);
 
@@ -26,7 +25,7 @@ public record AftercareHomeRes(
                 aftercareCase.getCaseId(),
                 AftercareProgress.from(aftercareCase, currentDay),
                 ProcedureSummary.from(aftercareCase.getProcedureRecord()),
-                ConsultationAppointment.from(appointmentLookup)
+                ConsultationAppointment.from(appointment)
         );
     }
 
@@ -68,25 +67,17 @@ public record AftercareHomeRes(
 
     public record ConsultationAppointment(
             Long appointmentId,
-            OffsetDateTime startsAt,
-            OffsetDateTime endsAt,
-            Boolean canEnterWaitingRoom,
-            String timezoneId
+            OffsetDateTime startsAt
     ) {
 
-        private static ConsultationAppointment from(AppointmentLookupRes appointmentLookup) {
-            if (appointmentLookup == null || !appointmentLookup.hasAppointment()) {
+        private static ConsultationAppointment from(AppointmentHomeSummary appointment) {
+            if (appointment == null) {
                 return null;
             }
 
-            AppointmentDetailRes appointment = appointmentLookup.appointment();
-
             return new ConsultationAppointment(
                     appointment.appointmentId(),
-                    appointment.startsAt(),
-                    appointment.endsAt(),
-                    appointment.canEnterWaitingRoom(),
-                    appointment.timezoneId()
+                    appointment.startsAt()
             );
         }
     }
