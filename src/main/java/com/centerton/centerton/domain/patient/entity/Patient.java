@@ -1,5 +1,6 @@
 package com.centerton.centerton.domain.patient.entity;
 
+import com.centerton.centerton.domain.patient.entity.enums.Gender;
 import com.centerton.centerton.domain.patient.entity.enums.Language;
 import com.centerton.centerton.global.entity.BaseEntity;
 import jakarta.persistence.Column;
@@ -34,8 +35,15 @@ public class Patient extends BaseEntity {
     @Column(name = "name")
     private String name;
 
+    @Column(name = "english_name")
+    private String englishName;
+
     @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", length = 20)
+    private Gender gender;
 
     @Column(name = "email")
     private String email;

@@ -30,7 +30,6 @@ import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.zone.ZoneRulesException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,6 +40,8 @@ import java.util.TreeMap;
 @Service
 @RequiredArgsConstructor
 public class AppointmentService {
+
+    private static final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
 
     private final AppointmentRepository appointmentRepository;
     private final ReservationSlotRepository reservationSlotRepository;
@@ -53,7 +54,8 @@ public class AppointmentService {
             Long patientId,
             Long caseId
     ) {
-        ZoneId zoneId = getPatientZoneId(patientId);
+        ensurePatientExists(patientId);
+        ZoneId zoneId = UTC_ZONE_ID;
         LocalDateTime nowUtc = nowUtc();
 
         List<Appointment> activeAppointments =
@@ -83,7 +85,8 @@ public class AppointmentService {
             int year,
             int month
     ) {
-        ZoneId zoneId = getPatientZoneId(patientId);
+        ensurePatientExists(patientId);
+        ZoneId zoneId = UTC_ZONE_ID;
         YearMonth requestedMonth = YearMonth.of(year, month);
         LocalDate today = LocalDate.now(zoneId);
 
@@ -138,7 +141,8 @@ public class AppointmentService {
             Long patientId,
             LocalDate date
     ) {
-        ZoneId zoneId = getPatientZoneId(patientId);
+        ensurePatientExists(patientId);
+        ZoneId zoneId = UTC_ZONE_ID;
         LocalDateTime fromUtc = toUtc(date.atStartOfDay(), zoneId);
         LocalDateTime toUtc = toUtc(date.plusDays(1).atStartOfDay(), zoneId);
         LocalDateTime nowUtc = nowUtc();
@@ -190,8 +194,8 @@ public class AppointmentService {
             Long patientId,
             AppointmentCreateReq request
     ) {
-        Patient patient = getPatientForUpdate(patientId);
-        ZoneId zoneId = resolvePatientZoneId(patient);
+        getPatientForUpdate(patientId);
+        ZoneId zoneId = UTC_ZONE_ID;
         LocalDateTime nowUtc = nowUtc();
 
         // TODO: case 도메인 구현 후 caseId와 patientId 기준으로 소유권을 검증합니다.
@@ -229,7 +233,8 @@ public class AppointmentService {
             Long appointmentId,
             AppointmentChangeReq request
     ) {
-        ZoneId zoneId = getPatientZoneId(patientId);
+        ensurePatientExists(patientId);
+        ZoneId zoneId = UTC_ZONE_ID;
         LocalDateTime nowUtc = nowUtc();
 
         Appointment appointment = getAppointmentForUpdate(
@@ -455,13 +460,10 @@ public class AppointmentService {
         );
     }
 
-    private ZoneId getPatientZoneId(Long patientId) {
-        Patient patient = patientRepository.findById(patientId)
-                .orElseThrow(() -> new BaseException(
-                        PatientErrorCode.PATIENT_NOT_FOUND
-                ));
-
-        return resolvePatientZoneId(patient);
+    private void ensurePatientExists(Long patientId) {
+        if (!patientRepository.existsById(patientId)) {
+            throw new BaseException(PatientErrorCode.PATIENT_NOT_FOUND);
+        }
     }
 
     private Patient getPatientForUpdate(Long patientId) {
@@ -469,20 +471,6 @@ public class AppointmentService {
                 .orElseThrow(() -> new BaseException(
                         PatientErrorCode.PATIENT_NOT_FOUND
                 ));
-    }
-
-    private ZoneId resolvePatientZoneId(Patient patient) {
-        String timezoneId = patient.getTimezoneId();
-
-        if (timezoneId == null || timezoneId.isBlank()) {
-            return ZoneOffset.UTC;
-        }
-
-        try {
-            return ZoneId.of(timezoneId);
-        } catch (ZoneRulesException exception) {
-            return ZoneOffset.UTC;
-        }
     }
 
     private OffsetDateTime toUserTime(
