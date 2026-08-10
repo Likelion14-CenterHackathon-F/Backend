@@ -1,10 +1,13 @@
 package com.centerton.centerton.domain.aftercare.service;
 
 import com.centerton.centerton.domain.aftercare.dto.response.AftercareDashboardDetailRes;
+import com.centerton.centerton.domain.aftercare.dto.response.AftercareHomeRes;
 import com.centerton.centerton.domain.aftercare.dto.response.EmergencyMedicalReportRes;
 import com.centerton.centerton.domain.aftercare.entity.AftercareCase;
 import com.centerton.centerton.domain.aftercare.exception.AftercareErrorCode;
 import com.centerton.centerton.domain.aftercare.repository.AftercareCaseRepository;
+import com.centerton.centerton.domain.appointment.dto.response.AppointmentLookupRes;
+import com.centerton.centerton.domain.appointment.service.AppointmentService;
 import com.centerton.centerton.domain.patient.entity.PatientAllergy;
 import com.centerton.centerton.domain.patient.repository.PatientAllergyRepository;
 import com.centerton.centerton.global.exception.BaseException;
@@ -24,6 +27,16 @@ public class AftercareService {
 
     private final AftercareCaseRepository aftercareCaseRepository;
     private final PatientAllergyRepository patientAllergyRepository;
+    private final AppointmentService appointmentService;
+
+    public AftercareHomeRes getHome(Long patientId) {
+        AftercareCase aftercareCase = getHomeAftercareCase(patientId);
+        validateProcedureRecord(aftercareCase);
+
+        AppointmentLookupRes appointmentLookup = appointmentService.getAppointment(patientId, aftercareCase.getCaseId());
+
+        return AftercareHomeRes.from(aftercareCase, resolveToday(aftercareCase), appointmentLookup);
+    }
 
     public AftercareDashboardDetailRes getDashboardDetail(Long patientId) {
         AftercareCase aftercareCase = getDashboardAftercareCase(patientId);
@@ -39,6 +52,11 @@ public class AftercareService {
         List<PatientAllergy> allergies = patientAllergyRepository.findAllByPatientIdOrderByAllergyIdAsc(patientId);
 
         return EmergencyMedicalReportRes.from(aftercareCase, allergies);
+    }
+
+    private AftercareCase getHomeAftercareCase(Long patientId) {
+        return aftercareCaseRepository.findHomeByPatientId(patientId)
+                .orElseThrow(() -> new BaseException(AftercareErrorCode.AFTERCARE_CASE_NOT_FOUND));
     }
 
     private AftercareCase getDashboardAftercareCase(Long patientId) {

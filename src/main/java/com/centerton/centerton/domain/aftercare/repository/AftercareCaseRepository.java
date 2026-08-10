@@ -10,6 +10,10 @@ import java.util.Optional;
 
 public interface AftercareCaseRepository extends JpaRepository<AftercareCase, Long> {
 
+    @EntityGraph(attributePaths = {"patient", "procedureRecord"})
+    @Query("select aftercareCase from AftercareCase aftercareCase where aftercareCase.patient.id = :patientId")
+    Optional<AftercareCase> findHomeByPatientId(@Param("patientId") Long patientId);
+
     @EntityGraph(attributePaths = {"patient", "procedureRecord", "recoveryStageGuides"})
     @Query("select aftercareCase from AftercareCase aftercareCase where aftercareCase.patient.id = :patientId")
     Optional<AftercareCase> findDashboardByPatientId(@Param("patientId") Long patientId);
