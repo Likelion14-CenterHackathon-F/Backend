@@ -10,6 +10,7 @@ import com.centerton.centerton.domain.patient.exception.PatientAccessLinkInvalid
 import com.centerton.centerton.domain.patient.exception.PatientAccessLinkTokenGenerationFailedException;
 import com.centerton.centerton.domain.patient.exception.PatientBirthDateNotMatchedException;
 import com.centerton.centerton.domain.patient.exception.PatientNotFoundException;
+import com.centerton.centerton.domain.patient.exception.PatientSettingsInvalidException;
 import com.centerton.centerton.domain.patient.repository.PatientAccessLinkRepository;
 import com.centerton.centerton.domain.patient.repository.PatientRepository;
 import com.centerton.centerton.domain.patient.web.dto.PatientAccessLinkCreateReq;
@@ -28,7 +29,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.DateTimeException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Base64;
 import java.util.HexFormat;
 
@@ -67,6 +70,7 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
     }
 
     @Override
+    @Transactional
     public PatientAccessLinkVerifyRes verifyAccessLink(PatientAccessLinkVerifyReq request) {
         validateVerifyRequest(request);
 
@@ -83,6 +87,8 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
             throw new PatientBirthDateNotMatchedException();
         }
 
+        applySettings(patient, request);
+
         String accessToken = jwtTokenProvider.createPatientAccessToken(patient.getId());
         return PatientAccessLinkVerifyRes.of(patient.getId(), accessToken);
     }
@@ -90,6 +96,29 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
     private void validateVerifyRequest(PatientAccessLinkVerifyReq request) {
         if (request == null || !StringUtils.hasText(request.token()) || request.birthDate() == null) {
             throw new PatientAccessLinkAuthenticationInvalidException();
+        }
+    }
+
+    private void applySettings(Patient patient, PatientAccessLinkVerifyReq request) {
+        String timezoneId = resolveTimezoneId(request.timezoneId());
+        patient.updateSettings(request.language(), null, timezoneId);
+    }
+
+    private String resolveTimezoneId(String timezoneId) {
+        if (timezoneId == null) {
+            return null;
+        }
+
+        String resolvedTimezoneId = timezoneId.trim();
+        validateTimezoneId(resolvedTimezoneId);
+        return resolvedTimezoneId;
+    }
+
+    private void validateTimezoneId(String timezoneId) {
+        try {
+            ZoneId.of(timezoneId);
+        } catch (DateTimeException e) {
+            throw new PatientSettingsInvalidException();
         }
     }
 
