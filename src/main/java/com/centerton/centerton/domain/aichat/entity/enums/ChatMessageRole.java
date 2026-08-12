@@ -6,8 +6,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Arrays;
 
 public enum ChatMessageRole {
-    USER("사용자"),
-    ASSISTANT("AI");
+    USER("USER"),
+    ASSISTANT("ASSISTANT");
 
     private final String value;
 

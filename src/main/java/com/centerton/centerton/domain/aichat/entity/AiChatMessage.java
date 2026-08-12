@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -20,6 +21,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+
+import static jakarta.persistence.CascadeType.ALL;
 
 @Getter
 @Entity
@@ -55,6 +58,14 @@ public class AiChatMessage extends BaseEntity {
     @JoinColumn(name = "chat_room_id", nullable = false)
     private AiChatRoom chatRoom;
 
+    @OneToOne(
+            mappedBy = "chatMessage",
+            cascade = ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
+    private AiChatImageAttachment imageAttachment;
+
     public static AiChatMessage create(
             AiChatRoom chatRoom,
             ChatMessageRole role,
@@ -66,7 +77,25 @@ public class AiChatMessage extends BaseEntity {
                 role,
                 content,
                 sentAt,
-                chatRoom
+                chatRoom,
+                null
+        );
+    }
+
+    public void attachImage(
+            String storedFileName,
+            String imageUrl,
+            String originalFileName,
+            String contentType,
+            Long sizeBytes
+    ) {
+        this.imageAttachment = AiChatImageAttachment.create(
+                this,
+                storedFileName,
+                imageUrl,
+                originalFileName,
+                contentType,
+                sizeBytes
         );
     }
 
