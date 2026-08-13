@@ -21,12 +21,18 @@ public class AftercareController {
 
     @GetMapping("/home")
     public SuccessResponse<AftercareHomeRes> getHome(@AuthenticationPrincipal PatientDetails patientDetails) {
-        return SuccessResponse.from(aftercareService.getHome(patientDetails.getPatientId()));
+        return SuccessResponse.from(aftercareService.getHome(
+                patientDetails.getPatientId(),
+                patientDetails.getLanguage()
+        ));
     }
 
     @GetMapping("/dashboard")
     public SuccessResponse<AftercareDashboardDetailRes> getDashboardDetail(@AuthenticationPrincipal PatientDetails patientDetails) {
-        return SuccessResponse.from(aftercareService.getDashboardDetail(patientDetails.getPatientId()));
+        return SuccessResponse.from(aftercareService.getDashboardDetail(
+                patientDetails.getPatientId(),
+                patientDetails.getLanguage()
+        ));
     }
 
     @GetMapping("/emergency-medical-report")

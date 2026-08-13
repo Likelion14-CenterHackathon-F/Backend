@@ -3,7 +3,6 @@ package com.centerton.centerton.domain.aftercare.dto.response;
 import com.centerton.centerton.domain.aftercare.entity.AftercareCase;
 import com.centerton.centerton.domain.aftercare.entity.ProcedureRecord;
 import com.centerton.centerton.domain.aftercare.entity.RecoveryStageGuide;
-import com.centerton.centerton.domain.aftercare.entity.enums.RecoveryStage;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -51,7 +50,7 @@ public record AftercareDashboardDetailRes(
 
     public record RecoveryGuide(
             Long stageGuideId,
-            RecoveryStage recoveryStage,
+            String recoveryStage,
             Integer startDay,
             Integer endDay,
             List<String> guideItems,
@@ -63,7 +62,7 @@ public record AftercareDashboardDetailRes(
 
             return new RecoveryGuide(
                     guide.getStageGuideId(),
-                    guide.getRecoveryStage(),
+                    guide.getRecoveryStage().getValue(),
                     guide.getStartDay(),
                     guide.getEndDay(),
                     toLineItems(guide.getGuideContent()),

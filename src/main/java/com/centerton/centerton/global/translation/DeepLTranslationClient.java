@@ -29,7 +29,10 @@ public class DeepLTranslationClient {
             List<String> koreanTexts,
             String targetLanguageCode
     ) {
-        if (isKorean(targetLanguageCode) || koreanTexts.isEmpty()) {
+        String resolvedTargetLanguageCode =
+                resolveTargetLanguageCode(targetLanguageCode);
+
+        if (isKorean(resolvedTargetLanguageCode) || koreanTexts.isEmpty()) {
             return List.copyOf(koreanTexts);
         }
 
@@ -50,7 +53,7 @@ public class DeepLTranslationClient {
         DeepLTranslateRequest request = new DeepLTranslateRequest(
                 translatableTexts,
                 KOREAN_SOURCE_CODE,
-                targetLanguageCode,
+                resolvedTargetLanguageCode,
                 true
         );
 
@@ -81,10 +84,84 @@ public class DeepLTranslationClient {
         }
     }
 
+    public List<String> translateKoreanTextsContainingHangul(
+            List<String> texts,
+            String targetLanguageCode
+    ) {
+        if (texts.isEmpty()) {
+            return List.of();
+        }
+
+        String resolvedTargetLanguageCode =
+                resolveTargetLanguageCode(targetLanguageCode);
+
+        if (isKorean(resolvedTargetLanguageCode)) {
+            return List.copyOf(texts);
+        }
+
+        List<Integer> translatedIndexes = new ArrayList<>();
+        List<String> translatableTexts = new ArrayList<>();
+
+        for (int index = 0; index < texts.size(); index++) {
+            String text = texts.get(index);
+            if (containsHangul(text)) {
+                translatedIndexes.add(index);
+                translatableTexts.add(text);
+            }
+        }
+
+        if (translatableTexts.isEmpty()) {
+            return List.copyOf(texts);
+        }
+
+        List<String> translatedTexts = translateKoreanTexts(
+                translatableTexts,
+                resolvedTargetLanguageCode
+        );
+
+        List<String> result = new ArrayList<>(texts);
+        for (int index = 0; index < translatedIndexes.size(); index++) {
+            result.set(
+                    translatedIndexes.get(index),
+                    translatedTexts.get(index)
+            );
+        }
+
+        return List.copyOf(result);
+    }
+
     private boolean isKorean(String targetLanguageCode) {
         return targetLanguageCode == null
                 || targetLanguageCode.isBlank()
                 || KOREAN_SOURCE_CODE.equalsIgnoreCase(targetLanguageCode.trim());
+    }
+
+    private String resolveTargetLanguageCode(String targetLanguageCode) {
+        if (targetLanguageCode == null || targetLanguageCode.isBlank()) {
+            return KOREAN_SOURCE_CODE;
+        }
+
+        String normalized = targetLanguageCode.trim();
+        String upperCased = normalized.toUpperCase();
+
+        return switch (upperCased) {
+            case "KO", "KOREAN" -> "KO";
+            case "EN", "ENGLISH" -> "EN-US";
+            case "JA", "JP", "JAPANESE" -> "JA";
+            case "ZH", "CHINESE" -> "ZH-HANS";
+            default -> normalized;
+        };
+    }
+
+    private boolean containsHangul(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+
+        return text.codePoints()
+                .anyMatch(codePoint ->
+                        codePoint >= 0xAC00 && codePoint <= 0xD7A3
+                );
     }
 
     private void validateConfiguration() {

@@ -7,15 +7,13 @@ import com.centerton.centerton.domain.aichat.dto.response.AiChatRoomMessagesRes;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatSymptomInquiryRes;
 import com.centerton.centerton.domain.aichat.entity.AiChatMessage;
 import com.centerton.centerton.domain.aichat.exception.AiChatErrorCode;
-import com.centerton.centerton.domain.aichat.repository.AiChatMessageRepository;
-import com.centerton.centerton.domain.aichat.repository.AiChatRoomRepository;
 import com.centerton.centerton.domain.aichat.storage.AiChatImageStorage;
 import com.centerton.centerton.domain.aichat.storage.StoredAiChatImage;
+import com.centerton.centerton.domain.patient.entity.enums.Language;
 import com.centerton.centerton.global.exception.BaseException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -29,14 +27,15 @@ public class AiChatService {
 
     private static final int MAX_QUESTION_LENGTH = 1000;
 
-    private final AiChatRoomRepository chatRoomRepository;
-    private final AiChatMessageRepository chatMessageRepository;
     private final AiChatImageStorage imageStorage;
     private final AiChatAnswerService answerService;
     private final AiChatTransactionService transactionService;
+    private final AiChatQueryService queryService;
+    private final AiChatResponseTranslator responseTranslator;
 
     public AiChatSymptomInquiryRes createSymptomInquiry(
             Long patientId,
+            Language language,
             AiChatSymptomInquiryReq request
     ) {
         String question = normalizeQuestion(request.getQuestion());
@@ -72,10 +71,13 @@ public class AiChatService {
                     nowUtc()
             );
 
-            return AiChatSymptomInquiryRes.of(
-                    savedUserMessage.chatRoom(),
-                    savedUserMessage.userMessage(),
-                    assistantMessage
+            return responseTranslator.translateSymptomInquiry(
+                    AiChatSymptomInquiryRes.of(
+                            savedUserMessage.chatRoom(),
+                            savedUserMessage.userMessage(),
+                            assistantMessage
+                    ),
+                    language
             );
         } catch (RuntimeException exception) {
             if (!userMessageSaved) {
@@ -85,42 +87,32 @@ public class AiChatService {
         }
     }
 
-    @Transactional(readOnly = true)
-    public List<AiChatRoomListRes> getChatRooms(Long patientId) {
-        return chatRoomRepository.findAllByPatientIdOrderByLastMessageAtDescChatRoomIdDesc(patientId)
-                .stream()
-                .map(AiChatRoomListRes::from)
-                .toList();
+    public List<AiChatRoomListRes> getChatRooms(
+            Long patientId,
+            Language language
+    ) {
+        return responseTranslator.translateChatRooms(
+                queryService.getChatRooms(patientId),
+                language
+        );
     }
 
-    @Transactional(readOnly = true)
     public AiChatRoomMessagesRes getChatRoomMessages(
             Long patientId,
+            Language language,
             Long roomId
     ) {
-        return chatRoomRepository.findByChatRoomIdAndPatientId(roomId, patientId)
-                .map(AiChatRoomMessagesRes::from)
-                .orElseThrow(() -> new BaseException(
-                        AiChatErrorCode.CHAT_ROOM_NOT_FOUND
-                ));
+        return responseTranslator.translateChatRoomMessages(
+                queryService.getChatRoomMessages(patientId, roomId),
+                language
+        );
     }
 
-    @Transactional(readOnly = true)
     public AiChatDownloadImage getImage(
             Long patientId,
             String storedFileName
     ) {
-        String imageUrl = imageStorage.resolveDisplayImageUrl(storedFileName);
-        chatMessageRepository.findAccessibleImageMessage(imageUrl, patientId)
-                .orElseThrow(() -> new BaseException(
-                        AiChatErrorCode.IMAGE_NOT_FOUND
-                ));
-
-        return new AiChatDownloadImage(
-                storedFileName,
-                imageStorage.resolveContentType(storedFileName),
-                imageStorage.load(storedFileName)
-        );
+        return queryService.getImage(patientId, storedFileName);
     }
 
     private String normalizeQuestion(String question) {
