@@ -1,6 +1,7 @@
 package com.centerton.centerton.global.jwt;
 
 import com.centerton.centerton.domain.patient.entity.Patient;
+import com.centerton.centerton.domain.patient.entity.enums.Language;
 import com.centerton.centerton.global.jwt.exception.TokenInvalidException;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
@@ -51,12 +52,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private Authentication getAuthentication(HttpServletRequest request, String token) {
         Long patientId = jwtTokenUtil.getPatientId(token);
+        Language language = jwtTokenUtil.getPatientLanguage(token);
 
         Patient patient = Patient.builder()
                 .id(patientId)
                 .build();
 
-        PatientDetails patientDetails = new PatientDetails(patient);
+        PatientDetails patientDetails = new PatientDetails(patient, language);
 
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(patientDetails, null, patientDetails.getAuthorities());

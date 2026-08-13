@@ -89,7 +89,10 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
 
         applySettings(patient, request);
 
-        String accessToken = jwtTokenProvider.createPatientAccessToken(patient.getId());
+        String accessToken = jwtTokenProvider.createPatientAccessToken(
+                patient.getId(),
+                patient.getLanguage()
+        );
         return PatientAccessLinkVerifyRes.of(patient.getId(), accessToken);
     }
 
