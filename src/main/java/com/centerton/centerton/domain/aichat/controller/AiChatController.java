@@ -2,6 +2,7 @@ package com.centerton.centerton.domain.aichat.controller;
 
 import com.centerton.centerton.domain.aichat.dto.request.AiChatSymptomInquiryReq;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatDownloadImage;
+import com.centerton.centerton.domain.aichat.dto.response.AiChatRoomListRes;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatSymptomInquiryRes;
 import com.centerton.centerton.domain.aichat.service.AiChatService;
 import com.centerton.centerton.global.jwt.PatientDetails;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Validated
 @RestController
@@ -46,6 +48,15 @@ public class AiChatController {
                         patientDetails.getPatientId(),
                         request
                 )
+        );
+    }
+
+    @GetMapping("/rooms")
+    public SuccessResponse<List<AiChatRoomListRes>> getChatRooms(
+            @AuthenticationPrincipal PatientDetails patientDetails
+    ) {
+        return SuccessResponse.from(
+                aiChatService.getChatRooms(patientDetails.getPatientId())
         );
     }
 

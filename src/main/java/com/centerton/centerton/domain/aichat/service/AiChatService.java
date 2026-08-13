@@ -2,10 +2,12 @@ package com.centerton.centerton.domain.aichat.service;
 
 import com.centerton.centerton.domain.aichat.dto.request.AiChatSymptomInquiryReq;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatDownloadImage;
+import com.centerton.centerton.domain.aichat.dto.response.AiChatRoomListRes;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatSymptomInquiryRes;
 import com.centerton.centerton.domain.aichat.entity.AiChatMessage;
 import com.centerton.centerton.domain.aichat.exception.AiChatErrorCode;
 import com.centerton.centerton.domain.aichat.repository.AiChatMessageRepository;
+import com.centerton.centerton.domain.aichat.repository.AiChatRoomRepository;
 import com.centerton.centerton.domain.aichat.storage.AiChatImageStorage;
 import com.centerton.centerton.domain.aichat.storage.StoredAiChatImage;
 import com.centerton.centerton.global.exception.BaseException;
@@ -17,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -25,6 +28,7 @@ public class AiChatService {
 
     private static final int MAX_QUESTION_LENGTH = 1000;
 
+    private final AiChatRoomRepository chatRoomRepository;
     private final AiChatMessageRepository chatMessageRepository;
     private final AiChatImageStorage imageStorage;
     private final AiChatAnswerService answerService;
@@ -78,6 +82,14 @@ public class AiChatService {
             }
             throw exception;
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<AiChatRoomListRes> getChatRooms(Long patientId) {
+        return chatRoomRepository.findAllByPatientIdOrderByLastMessageAtDescChatRoomIdDesc(patientId)
+                .stream()
+                .map(AiChatRoomListRes::from)
+                .toList();
     }
 
     @Transactional(readOnly = true)
