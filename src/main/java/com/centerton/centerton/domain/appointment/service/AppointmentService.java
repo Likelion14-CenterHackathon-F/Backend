@@ -2,6 +2,7 @@ package com.centerton.centerton.domain.appointment.service;
 
 import com.centerton.centerton.domain.appointment.dto.request.AppointmentChangeReq;
 import com.centerton.centerton.domain.appointment.dto.request.AppointmentCreateReq;
+import com.centerton.centerton.domain.appointment.dto.request.AppointmentCancelReq;
 import com.centerton.centerton.domain.appointment.dto.response.AppointmentDetailRes;
 import com.centerton.centerton.domain.appointment.dto.response.AppointmentLookupRes;
 import com.centerton.centerton.domain.appointment.dto.response.AvailableDateRes;
@@ -9,18 +10,17 @@ import com.centerton.centerton.domain.appointment.dto.response.AvailableSlotList
 import com.centerton.centerton.domain.appointment.dto.response.AvailableSlotRes;
 import com.centerton.centerton.domain.appointment.entity.Appointment;
 import com.centerton.centerton.domain.appointment.entity.ReservationSlot;
+import com.centerton.centerton.domain.appointment.entity.enums.AppointmentStatus;
 import com.centerton.centerton.domain.appointment.exception.AppointmentErrorCode;
 import com.centerton.centerton.domain.appointment.policy.AppointmentTimePolicy;
 import com.centerton.centerton.domain.appointment.repository.AppointmentRepository;
 import com.centerton.centerton.domain.appointment.repository.ReservationSlotRepository;
 import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
-import com.centerton.centerton.domain.patient.entity.Patient;
 import com.centerton.centerton.domain.patient.exception.PatientErrorCode;
 import com.centerton.centerton.domain.patient.repository.PatientRepository;
-import com.centerton.centerton.domain.preconsultationsubmission.service.PreconsultSubmissionCleanupService;
+import com.centerton.centerton.domain.preconsultationsubmission.service.PreconsultSubmissionService;
 import com.centerton.centerton.global.exception.BaseException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,7 +47,8 @@ public class AppointmentService {
     private final ReservationSlotRepository reservationSlotRepository;
     private final PatientRepository patientRepository;
     private final ConsultationSessionRepository consultationSessionRepository;
-    private final PreconsultSubmissionCleanupService preconsultSubmissionCleanupService;
+    private final AppointmentReservationTransactionService reservationTransactionService;
+    private final PreconsultSubmissionService preconsultSubmissionService;
 
     @Transactional(readOnly = true)
     public AppointmentLookupRes getAppointment(
@@ -189,41 +190,34 @@ public class AppointmentService {
         );
     }
 
-    @Transactional
     public AppointmentDetailRes createAppointment(
             Long patientId,
             AppointmentCreateReq request
     ) {
-        getPatientForUpdate(patientId);
-        ZoneId zoneId = UTC_ZONE_ID;
+        PreconsultSubmissionService.PreparedPreconsultSubmission prepared =
+                preconsultSubmissionService.prepareSubmission(
+                        request.getSymptomCategory(),
+                        request.getSymptomNote(),
+                        request.getFiles()
+                );
         LocalDateTime nowUtc = nowUtc();
-
-        // TODO: case 도메인 구현 후 caseId와 patientId 기준으로 소유권을 검증합니다.
-        ensureNoActiveAppointment(patientId, request.caseId(), nowUtc);
-
-        ReservationSlot slot = getSlotForUpdate(request.slotId());
-        validateReservable(slot, nowUtc);
-
-        if (appointmentRepository.existsBySlotId(slot.getSlotId())) {
-            throw new BaseException(
-                    AppointmentErrorCode.RESERVATION_SLOT_UNAVAILABLE
-            );
-        }
-
-        slot.reserve();
-        Appointment appointment = Appointment.create(
-                request.caseId(),
-                patientId,
-                request.slotId()
-        );
-
         try {
-            Appointment saved = appointmentRepository.saveAndFlush(appointment);
-            return toAppointmentDetail(saved, slot, zoneId, nowUtc);
-        } catch (DataIntegrityViolationException exception) {
-            throw new BaseException(
-                    AppointmentErrorCode.RESERVATION_SLOT_UNAVAILABLE
+            AppointmentReservationTransactionService.CreatedAppointment created =
+                    reservationTransactionService.createAppointment(
+                            patientId,
+                            request,
+                            prepared,
+                            nowUtc
+                    );
+            return toAppointmentDetail(
+                    created.appointment(),
+                    created.slot(),
+                    UTC_ZONE_ID,
+                    nowUtc
             );
+        } catch (RuntimeException exception) {
+            preconsultSubmissionService.cleanupPreparedFiles(prepared);
+            throw exception;
         }
     }
 
@@ -241,6 +235,7 @@ public class AppointmentService {
                 appointmentId,
                 patientId
         );
+        validateConfirmed(appointment);
 
         if (appointment.getSlotId().equals(request.slotId())) {
             ReservationSlot currentSlot = getSlot(appointment.getSlotId());
@@ -262,12 +257,15 @@ public class AppointmentService {
         ReservationSlot currentSlot = lockedSlots.get(appointment.getSlotId());
         ReservationSlot newSlot = lockedSlots.get(request.slotId());
 
-        validateChangeOrCancelAllowed(currentSlot, nowUtc);
+        validateChangeAllowed(currentSlot, nowUtc);
         validateReservable(newSlot, nowUtc);
 
-        if (appointmentRepository.existsBySlotId(newSlot.getSlotId())) {
+        if (appointmentRepository.existsBySlotIdAndStatus(
+                newSlot.getSlotId(),
+                AppointmentStatus.CONFIRMED
+        )) {
             throw new BaseException(
-                    AppointmentErrorCode.RESERVATION_SLOT_UNAVAILABLE
+                    AppointmentErrorCode.RESERVATION_SLOT_ALREADY_RESERVED
             );
         }
 
@@ -275,13 +273,7 @@ public class AppointmentService {
         newSlot.reserve();
         appointment.changeSlot(newSlot.getSlotId());
 
-        try {
-            appointmentRepository.flush();
-        } catch (DataIntegrityViolationException exception) {
-            throw new BaseException(
-                    AppointmentErrorCode.RESERVATION_SLOT_UNAVAILABLE
-            );
-        }
+        appointmentRepository.flush();
 
         return toAppointmentDetail(
                 appointment,
@@ -292,44 +284,25 @@ public class AppointmentService {
     }
 
     @Transactional
-    public void cancelAppointment(Long patientId, Long appointmentId) {
+    public void cancelAppointment(
+            Long patientId,
+            Long appointmentId,
+            AppointmentCancelReq request
+    ) {
         LocalDateTime nowUtc = nowUtc();
 
         Appointment appointment = getAppointmentForUpdate(
                 appointmentId,
                 patientId
         );
+        validateConfirmed(appointment);
         validateConsultationNotStarted(appointmentId);
         ReservationSlot slot = getSlotForUpdate(appointment.getSlotId());
 
-        validateChangeOrCancelAllowed(slot, nowUtc);
+        validateCancellationAllowed(slot, nowUtc);
 
-        preconsultSubmissionCleanupService.deleteByAppointmentId(
-                appointment.getAppointmentId()
-        );
-        appointmentRepository.delete(appointment);
+        appointment.cancel(request.cancelReason(), nowUtc);
         slot.release();
-    }
-
-    private void ensureNoActiveAppointment(
-            Long patientId,
-            Long caseId,
-            LocalDateTime nowUtc
-    ) {
-        List<Appointment> activeAppointments =
-                appointmentRepository.findActiveByPatientIdAndCaseId(
-                        patientId,
-                        caseId,
-                        nowUtc.minusMinutes(
-                                AppointmentTimePolicy.WAITING_ROOM_CLOSE_AFTER_MINUTES
-                        )
-                );
-
-        if (!activeAppointments.isEmpty()) {
-            throw new BaseException(
-                    AppointmentErrorCode.ACTIVE_APPOINTMENT_ALREADY_EXISTS
-            );
-        }
     }
 
     private Map<Long, ReservationSlot> lockSlotsInOrder(
@@ -379,9 +352,21 @@ public class AppointmentService {
             ReservationSlot slot,
             LocalDateTime nowUtc
     ) {
-        if (!isReservable(slot, nowUtc)) {
+        if (!slot.hasValidTimeRange()) {
             throw new BaseException(
                     AppointmentErrorCode.RESERVATION_SLOT_UNAVAILABLE
+            );
+        }
+
+        if (!AppointmentTimePolicy.canReserve(slot.getStartsAt(), nowUtc)) {
+            throw new BaseException(
+                    AppointmentErrorCode.RESERVATION_DEADLINE_PASSED
+            );
+        }
+
+        if (!slot.isAvailable()) {
+            throw new BaseException(
+                    AppointmentErrorCode.RESERVATION_SLOT_ALREADY_RESERVED
             );
         }
     }
@@ -392,7 +377,7 @@ public class AppointmentService {
     ) {
         return slot.isAvailable()
                 && slot.hasValidTimeRange()
-                && slot.getStartsAt().isAfter(nowUtc);
+                && AppointmentTimePolicy.canReserve(slot.getStartsAt(), nowUtc);
     }
 
     private boolean isReservable(
@@ -412,16 +397,41 @@ public class AppointmentService {
         return appointmentRepository.findOccupiedSlotIds(
                 slots.stream()
                         .map(ReservationSlot::getSlotId)
-                        .toList()
+                        .toList(),
+                AppointmentStatus.CONFIRMED
         );
     }
 
-    private void validateChangeOrCancelAllowed(
+    private void validateChangeAllowed(
             ReservationSlot slot,
             LocalDateTime nowUtc
     ) {
-        if (slot.getStartsAt() == null
-                || !slot.getStartsAt().isAfter(nowUtc)) {
+        if (!AppointmentTimePolicy.canReserve(slot.getStartsAt(), nowUtc)) {
+            throw new BaseException(
+                    AppointmentErrorCode.RESERVATION_DEADLINE_PASSED
+            );
+        }
+    }
+
+    private void validateCancellationAllowed(
+            ReservationSlot slot,
+            LocalDateTime nowUtc
+    ) {
+        if (!AppointmentTimePolicy.canCancel(slot.getStartsAt(), nowUtc)) {
+            throw new BaseException(
+                    AppointmentErrorCode.APPOINTMENT_CANCELLATION_DEADLINE_PASSED
+            );
+        }
+    }
+
+    private void validateConfirmed(Appointment appointment) {
+        if (appointment.isCancelled()) {
+            throw new BaseException(
+                    AppointmentErrorCode.APPOINTMENT_ALREADY_CANCELLED
+            );
+        }
+
+        if (!appointment.isConfirmed()) {
             throw new BaseException(
                     AppointmentErrorCode.APPOINTMENT_ALREADY_STARTED
             );
@@ -456,7 +466,8 @@ public class AppointmentService {
                 toUserTime(waitingRoomOpensAt, zoneId),
                 toUserTime(waitingRoomClosesAt, zoneId),
                 AppointmentTimePolicy.canJoin(slot.getStartsAt(), nowUtc),
-                zoneId.getId()
+                zoneId.getId(),
+                appointment.getStatus()
         );
     }
 
@@ -464,13 +475,6 @@ public class AppointmentService {
         if (!patientRepository.existsById(patientId)) {
             throw new BaseException(PatientErrorCode.PATIENT_NOT_FOUND);
         }
-    }
-
-    private Patient getPatientForUpdate(Long patientId) {
-        return patientRepository.findByIdForUpdate(patientId)
-                .orElseThrow(() -> new BaseException(
-                        PatientErrorCode.PATIENT_NOT_FOUND
-                ));
     }
 
     private OffsetDateTime toUserTime(

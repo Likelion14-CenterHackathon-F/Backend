@@ -1,11 +1,11 @@
 package com.centerton.centerton.domain.preconsultationsubmission.service;
 
 import com.centerton.centerton.domain.appointment.repository.AppointmentRepository;
-import com.centerton.centerton.domain.preconsultationsubmission.dto.request.PreconsultSubmissionCreateReq;
 import com.centerton.centerton.domain.preconsultationsubmission.dto.response.PreconsultDownloadFile;
 import com.centerton.centerton.domain.preconsultationsubmission.dto.response.PreconsultSubmissionRes;
 import com.centerton.centerton.domain.preconsultationsubmission.entity.FileAsset;
 import com.centerton.centerton.domain.preconsultationsubmission.entity.PreconsultSubmission;
+import com.centerton.centerton.domain.preconsultationsubmission.entity.enums.SymptomCategory;
 import com.centerton.centerton.domain.preconsultationsubmission.exception.PreconsultSubmissionErrorCode;
 import com.centerton.centerton.domain.preconsultationsubmission.repository.FileAssetRepository;
 import com.centerton.centerton.domain.preconsultationsubmission.repository.PreconsultSubmissionRepository;
@@ -28,29 +28,25 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PreconsultSubmissionService {
 
-    static final String FILE_URL_PREFIX = "/api/preconsult-submissions/files/";
+    public static final String FILE_URL_PREFIX = "/api/preconsult-submissions/files/";
 
     private static final int MAX_SYMPTOM_NOTE_LENGTH = 500;
 
     private final AppointmentRepository appointmentRepository;
     private final PreconsultSubmissionRepository submissionRepository;
     private final FileAssetRepository fileAssetRepository;
-    private final PreconsultSubmissionTransactionService transactionService;
     private final PreconsultFileStorage fileStorage;
     private final PreconsultFileValidator fileValidator;
 
-    public PreconsultSubmissionRes createSubmission(
-            Long patientId,
-            PreconsultSubmissionCreateReq request
+    public PreparedPreconsultSubmission prepareSubmission(
+            SymptomCategory symptomCategory,
+            String requestedSymptomNote,
+            List<MultipartFile> requestedFiles
     ) {
-        String symptomNote = normalizeSymptomNote(request.getSymptomNote());
-        List<MultipartFile> files = resolveFiles(request.getFiles());
+        String symptomNote = normalizeSymptomNote(requestedSymptomNote);
+        List<MultipartFile> files = resolveFiles(requestedFiles);
 
-        validateSubmissionContent(symptomNote, files);
-        transactionService.validateSubmissionRequest(
-                patientId,
-                request.getAppointmentId()
-        );
+        validateSubmissionContent(symptomCategory, symptomNote, files);
 
         List<StoredPreconsultFile> storedFiles = new ArrayList<>(files.size());
 
@@ -59,16 +55,21 @@ public class PreconsultSubmissionService {
                 storedFiles.add(fileStorage.store(file));
             }
 
-            return transactionService.createSubmission(
-                    patientId,
-                    request.getAppointmentId(),
+            return new PreparedPreconsultSubmission(
+                    symptomCategory,
                     symptomNote,
-                    storedFiles
+                    List.copyOf(storedFiles)
             );
         } catch (RuntimeException exception) {
             deleteStoredFilesQuietly(storedFiles);
             throw exception;
         }
+    }
+
+    public void cleanupPreparedFiles(
+            PreparedPreconsultSubmission submission
+    ) {
+        deleteStoredFilesQuietly(submission.storedFiles());
     }
 
     @Transactional(readOnly = true)
@@ -99,10 +100,7 @@ public class PreconsultSubmissionService {
     ) {
         String fileUrl = FILE_URL_PREFIX + storedFileName;
         FileAsset fileAsset = fileAssetRepository
-                .findAccessibleFile(
-                        fileUrl,
-                        patientId
-                )
+                .findAccessibleFile(fileUrl, patientId)
                 .orElseThrow(() -> new BaseException(
                         PreconsultSubmissionErrorCode.FILE_NOT_FOUND
                 ));
@@ -163,10 +161,11 @@ public class PreconsultSubmissionService {
     }
 
     private void validateSubmissionContent(
+            SymptomCategory symptomCategory,
             String symptomNote,
             List<MultipartFile> files
     ) {
-        if (symptomNote == null && files.isEmpty()) {
+        if (symptomCategory == null && symptomNote == null && files.isEmpty()) {
             throw new BaseException(
                     PreconsultSubmissionErrorCode.SUBMISSION_CONTENT_REQUIRED
             );
@@ -197,5 +196,12 @@ public class PreconsultSubmissionService {
         }
 
         return fileUrl.substring(FILE_URL_PREFIX.length());
+    }
+
+    public record PreparedPreconsultSubmission(
+            SymptomCategory symptomCategory,
+            String symptomNote,
+            List<StoredPreconsultFile> storedFiles
+    ) {
     }
 }

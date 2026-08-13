@@ -1,6 +1,11 @@
 package com.centerton.centerton.domain.consultation.service;
 
+import com.centerton.centerton.domain.appointment.entity.Appointment;
+import com.centerton.centerton.domain.appointment.entity.ReservationSlot;
+import com.centerton.centerton.domain.appointment.entity.enums.AppointmentStatus;
 import com.centerton.centerton.domain.appointment.policy.AppointmentAccessPolicy;
+import com.centerton.centerton.domain.appointment.repository.AppointmentRepository;
+import com.centerton.centerton.domain.appointment.repository.ReservationSlotRepository;
 import com.centerton.centerton.domain.consultation.client.AgoraSttClient;
 import com.centerton.centerton.domain.consultation.config.AgoraProperties;
 import com.centerton.centerton.domain.consultation.dto.request.JoinConsultationReq;
@@ -23,6 +28,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Slf4j
@@ -34,6 +43,8 @@ public class ConsultationService {
     private final ConsultationSessionRepository sessionRepository;
     private final TranscriptSegmentRepository transcriptRepository;
     private final AppointmentAccessPolicy appointmentAccessPolicy;
+    private final AppointmentRepository appointmentRepository;
+    private final ReservationSlotRepository reservationSlotRepository;
     private final ConsultationTransactionService transactionService;
     private final AgoraRtcTokenService rtcTokenService;
     private final AgoraSttClient sttClient;
@@ -43,6 +54,8 @@ public class ConsultationService {
             ConsultationSessionRepository sessionRepository,
             TranscriptSegmentRepository transcriptRepository,
             AppointmentAccessPolicy appointmentAccessPolicy,
+            AppointmentRepository appointmentRepository,
+            ReservationSlotRepository reservationSlotRepository,
             ConsultationTransactionService transactionService,
             AgoraRtcTokenService rtcTokenService,
             AgoraSttClient sttClient,
@@ -51,6 +64,8 @@ public class ConsultationService {
         this.sessionRepository = sessionRepository;
         this.transcriptRepository = transcriptRepository;
         this.appointmentAccessPolicy = appointmentAccessPolicy;
+        this.appointmentRepository = appointmentRepository;
+        this.reservationSlotRepository = reservationSlotRepository;
         this.transactionService = transactionService;
         this.rtcTokenService = rtcTokenService;
         this.sttClient = sttClient;
@@ -272,20 +287,72 @@ public class ConsultationService {
 
     @Transactional(readOnly = true)
     public List<ConsultationHistoryRes> getHistory(Long patientId) {
-        return sessionRepository.findAllByPatientIdOrderByStartedAtDesc(patientId)
+        Map<Long, ConsultationSession> sessionsByAppointmentId =
+                sessionRepository.findAllByPatientIdOrderByStartedAtDesc(patientId)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                ConsultationSession::getAppointmentId,
+                                Function.identity()
+                        ));
+
+        List<Appointment> appointments = appointmentRepository
+                .findAllByPatientIdOrderByAppointmentIdDesc(patientId);
+        Map<Long, ReservationSlot> slotsById = reservationSlotRepository
+                .findAllById(appointments.stream()
+                        .map(Appointment::getSlotId)
+                        .distinct()
+                        .toList())
                 .stream()
-                .map(session -> new ConsultationHistoryRes(
-                        session.getAppointmentId(),
-                        session.getSessionId(),
-                        session.getStartedAt(),
-                        session.getEndedAt(),
-                        session.getActualDurationSeconds(),
-                        transcriptRepository
-                                .existsByConsultationSessionSessionId(
-                                        session.getSessionId()
-                                )
+                .collect(Collectors.toMap(
+                        ReservationSlot::getSlotId,
+                        Function.identity()
+                ));
+
+        return appointments.stream()
+                .filter(appointment -> appointment.isCancelled()
+                        || sessionsByAppointmentId.containsKey(
+                                appointment.getAppointmentId()
+                        ))
+                .map(appointment -> toHistory(
+                        appointment,
+                        slotsById.get(appointment.getSlotId()),
+                        sessionsByAppointmentId.get(
+                                appointment.getAppointmentId()
+                        )
+                ))
+                .sorted(Comparator.comparing(
+                        ConsultationHistoryRes::appointmentStartsAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())
                 ))
                 .toList();
+    }
+
+    private ConsultationHistoryRes toHistory(
+            Appointment appointment,
+            ReservationSlot slot,
+            ConsultationSession session
+    ) {
+        AppointmentStatus status = appointment.getStatus();
+        if (session != null && session.isCompleted()
+                && status != AppointmentStatus.CANCELLED) {
+            status = AppointmentStatus.COMPLETED;
+        }
+
+        return new ConsultationHistoryRes(
+                appointment.getAppointmentId(),
+                session == null ? null : session.getSessionId(),
+                session == null ? null : session.getStartedAt(),
+                session == null ? null : session.getEndedAt(),
+                session == null ? null : session.getActualDurationSeconds(),
+                session != null && transcriptRepository
+                        .existsByConsultationSessionSessionId(
+                                session.getSessionId()
+                        ),
+                slot == null ? null : slot.getStartsAt(),
+                status,
+                appointment.getCancelReason(),
+                appointment.getCancelledAt()
+        );
     }
 
     private ConsultationSession getSession(Long appointmentId) {

@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 public final class AppointmentTimePolicy {
 
+    public static final int RESERVATION_DEADLINE_BEFORE_MINUTES = 60;
     public static final int WAITING_ROOM_OPEN_BEFORE_MINUTES = 10;
     public static final int WAITING_ROOM_CLOSE_AFTER_MINUTES = 20;
 
@@ -26,5 +27,23 @@ public final class AppointmentTimePolicy {
         LocalDateTime closesAt = waitingRoomClosesAt(startsAt);
 
         return !now.isBefore(opensAt) && !now.isAfter(closesAt);
+    }
+
+    public static boolean canReserve(
+            LocalDateTime startsAt,
+            LocalDateTime now
+    ) {
+        return startsAt != null
+                && now != null
+                && !startsAt.isBefore(
+                        now.plusMinutes(RESERVATION_DEADLINE_BEFORE_MINUTES)
+                );
+    }
+
+    public static boolean canCancel(
+            LocalDateTime startsAt,
+            LocalDateTime now
+    ) {
+        return canReserve(startsAt, now);
     }
 }

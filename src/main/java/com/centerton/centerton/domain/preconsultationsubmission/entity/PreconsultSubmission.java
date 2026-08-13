@@ -1,8 +1,11 @@
 package com.centerton.centerton.domain.preconsultationsubmission.entity;
 
 import com.centerton.centerton.domain.appointment.entity.Appointment;
+import com.centerton.centerton.domain.preconsultationsubmission.entity.enums.SymptomCategory;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
@@ -40,6 +43,10 @@ public class PreconsultSubmission {
     @Column(name = "symptom_note", columnDefinition = "TEXT")
     private String symptomNote;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "symptom_category", length = 50)
+    private SymptomCategory symptomCategory;
+
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "appointment_id",
@@ -51,12 +58,14 @@ public class PreconsultSubmission {
     private Appointment appointment;
 
     public static PreconsultSubmission create(
+            SymptomCategory symptomCategory,
             String symptomNote,
             Appointment appointment
     ) {
         return new PreconsultSubmission(
                 null,
                 symptomNote,
+                symptomCategory,
                 appointment
         );
     }

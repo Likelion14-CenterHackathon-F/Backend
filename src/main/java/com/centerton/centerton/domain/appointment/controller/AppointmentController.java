@@ -1,5 +1,6 @@
 package com.centerton.centerton.domain.appointment.controller;
 
+import com.centerton.centerton.domain.appointment.dto.request.AppointmentCancelReq;
 import com.centerton.centerton.domain.appointment.dto.request.AppointmentChangeReq;
 import com.centerton.centerton.domain.appointment.dto.request.AppointmentCreateReq;
 import com.centerton.centerton.domain.appointment.dto.response.AppointmentDetailRes;
@@ -15,10 +16,12 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -81,10 +84,10 @@ public class AppointmentController {
         );
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public SuccessResponse<AppointmentDetailRes> createAppointment(
             @AuthenticationPrincipal PatientDetails patientDetails,
-            @Valid @RequestBody AppointmentCreateReq request
+            @Valid @ModelAttribute AppointmentCreateReq request
     ) {
         return SuccessResponse.created(
                 appointmentService.createAppointment(
@@ -112,11 +115,13 @@ public class AppointmentController {
     @DeleteMapping("/{appointmentId}")
     public SuccessResponse<Void> cancelAppointment(
             @AuthenticationPrincipal PatientDetails patientDetails,
-            @PathVariable @Positive Long appointmentId
+            @PathVariable @Positive Long appointmentId,
+            @Valid @RequestBody AppointmentCancelReq request
     ) {
         appointmentService.cancelAppointment(
                 patientDetails.getPatientId(),
-                appointmentId
+                appointmentId,
+                request
         );
         return SuccessResponse.empty();
     }

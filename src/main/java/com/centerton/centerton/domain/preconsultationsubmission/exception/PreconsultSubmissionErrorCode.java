@@ -11,7 +11,7 @@ public enum PreconsultSubmissionErrorCode implements BaseResponseCode {
     SUBMISSION_CONTENT_REQUIRED(
             "PRECONSULT_SUBMISSION_400_1",
             400,
-            "사진·영상 또는 증상 메모 중 하나 이상을 입력해주세요."
+            "증상 분류, 증상 메모, 사진·영상 중 하나 이상을 입력해주세요."
     ),
 
     SYMPTOM_NOTE_TOO_LONG(

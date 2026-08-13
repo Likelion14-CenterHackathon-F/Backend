@@ -1,5 +1,6 @@
 package com.centerton.centerton.domain.appointment.policy;
 
+import com.centerton.centerton.domain.appointment.entity.Appointment;
 import com.centerton.centerton.domain.appointment.exception.AppointmentErrorCode;
 import com.centerton.centerton.domain.appointment.repository.AppointmentRepository;
 import com.centerton.centerton.global.exception.BaseException;
@@ -13,11 +14,16 @@ public class AppointmentAccessPolicy {
     private final AppointmentRepository appointmentRepository;
 
     public void validateAccess(Long patientId, Long appointmentId) {
-        if (!appointmentRepository.existsByAppointmentIdAndPatientId(
-                appointmentId,
-                patientId
-        )) {
-            throw new BaseException(AppointmentErrorCode.APPOINTMENT_NOT_FOUND);
+        Appointment appointment = appointmentRepository
+                .findByAppointmentIdAndPatientId(appointmentId, patientId)
+                .orElseThrow(() -> new BaseException(
+                        AppointmentErrorCode.APPOINTMENT_NOT_FOUND
+                ));
+
+        if (appointment.isCancelled()) {
+            throw new BaseException(
+                    AppointmentErrorCode.APPOINTMENT_ALREADY_CANCELLED
+            );
         }
     }
 }

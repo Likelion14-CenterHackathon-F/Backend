@@ -2,12 +2,14 @@ package com.centerton.centerton.domain.preconsultationsubmission.dto.response;
 
 import com.centerton.centerton.domain.preconsultationsubmission.entity.FileAsset;
 import com.centerton.centerton.domain.preconsultationsubmission.entity.PreconsultSubmission;
+import com.centerton.centerton.domain.preconsultationsubmission.entity.enums.SymptomCategory;
 
 import java.util.List;
 
 public record PreconsultSubmissionRes(
         Long submissionId,
         Long appointmentId,
+        SymptomCategory symptomCategory,
         String symptomNote,
         List<PreconsultFileRes> files
 ) {
@@ -19,6 +21,7 @@ public record PreconsultSubmissionRes(
         return new PreconsultSubmissionRes(
                 submission.getSubmissionId(),
                 submission.getAppointmentId(),
+                submission.getSymptomCategory(),
                 submission.getSymptomNote(),
                 fileAssets.stream()
                         .map(PreconsultFileRes::from)

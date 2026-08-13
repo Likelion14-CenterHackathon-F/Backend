@@ -1,6 +1,7 @@
 package com.centerton.centerton.domain.appointment.repository;
 
 import com.centerton.centerton.domain.appointment.entity.Appointment;
+import com.centerton.centerton.domain.appointment.entity.enums.AppointmentStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -34,6 +35,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             + "where appointment.slotId = slot.slotId "
             + "and appointment.patientId = :patientId "
             + "and appointment.caseId = :caseId "
+            + "and appointment.status = com.centerton.centerton.domain.appointment.entity.enums.AppointmentStatus.CONFIRMED "
             + "and slot.startsAt >= :minimumStartsAt "
             + "order by slot.startsAt asc")
     List<Appointment> findActiveByPatientIdAndCaseId(
@@ -42,16 +44,32 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("minimumStartsAt") LocalDateTime minimumStartsAt
     );
 
-    boolean existsBySlotId(Long slotId);
+    boolean existsBySlotIdAndStatus(
+            Long slotId,
+            AppointmentStatus status
+    );
 
     @Query("select appointment.slotId from Appointment appointment "
-            + "where appointment.slotId in :slotIds")
+            + "where appointment.slotId in :slotIds "
+            + "and appointment.status = :status")
     Set<Long> findOccupiedSlotIds(
-            @Param("slotIds") Collection<Long> slotIds
+            @Param("slotIds") Collection<Long> slotIds,
+            @Param("status") AppointmentStatus status
     );
 
     boolean existsByAppointmentIdAndPatientId(
             Long appointmentId,
+            Long patientId
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select appointment from Appointment appointment "
+            + "where appointment.appointmentId = :appointmentId")
+    Optional<Appointment> findByIdForUpdate(
+            @Param("appointmentId") Long appointmentId
+    );
+
+    List<Appointment> findAllByPatientIdOrderByAppointmentIdDesc(
             Long patientId
     );
 }
