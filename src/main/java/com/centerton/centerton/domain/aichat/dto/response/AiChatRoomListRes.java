@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 public record AiChatRoomListRes(
         Long roomId,
-        String title,
+        String roomTitle,
         LocalDateTime lastMessageAt
 ) {
 
