@@ -1,4 +1,4 @@
-package com.centerton.centerton.domain.consultationsummary.config;
+package com.centerton.centerton.global.translation;
 
 import lombok.Getter;
 import lombok.Setter;

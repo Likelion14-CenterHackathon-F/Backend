@@ -4,7 +4,6 @@ import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
 import com.centerton.centerton.domain.consultation.entity.TranscriptSegment;
 import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
 import com.centerton.centerton.domain.consultation.repository.TranscriptSegmentRepository;
-import com.centerton.centerton.domain.consultationsummary.client.DeepLTranslationClient;
 import com.centerton.centerton.domain.consultationsummary.dto.SummaryLanguage;
 import com.centerton.centerton.domain.consultationsummary.dto.request.ConsultationSummaryCreateReq;
 import com.centerton.centerton.domain.consultationsummary.dto.response.ConsultationSummaryDetailRes;
@@ -16,6 +15,9 @@ import com.centerton.centerton.domain.consultationsummary.exception.Consultation
 import com.centerton.centerton.domain.consultationsummary.repository.ConsultationSummaryRepository;
 import com.centerton.centerton.domain.consultationsummary.repository.SummaryInstructionRepository;
 import com.centerton.centerton.global.exception.BaseException;
+import com.centerton.centerton.global.translation.DeepLConfigurationException;
+import com.centerton.centerton.global.translation.DeepLTranslationClient;
+import com.centerton.centerton.global.translation.DeepLTranslationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -211,7 +213,7 @@ public class ConsultationSummaryService {
          * DeepL 외부 API가 호출됩니다.
          */
         List<String> translatedSummaries =
-                translationClient.translateKoreanTexts(
+                translateKoreanTexts(
                         koreanSummaries,
                         language
                 );
@@ -292,7 +294,7 @@ public class ConsultationSummaryService {
                 .forEach(koreanTexts::add);
 
         List<String> translatedTexts =
-                translationClient.translateKoreanTexts(
+                translateKoreanTexts(
                         koreanTexts,
                         language
                 );
@@ -347,5 +349,25 @@ public class ConsultationSummaryService {
 
     private String nonNull(String value) {
         return value == null ? "" : value;
+    }
+
+    private List<String> translateKoreanTexts(
+            List<String> koreanTexts,
+            SummaryLanguage language
+    ) {
+        try {
+            return translationClient.translateKoreanTexts(
+                    koreanTexts,
+                    language.getDeepLTargetCode()
+            );
+        } catch (DeepLConfigurationException exception) {
+            throw new BaseException(
+                    ConsultationSummaryErrorCode.DEEPL_CONFIGURATION_MISSING
+            );
+        } catch (DeepLTranslationException exception) {
+            throw new BaseException(
+                    ConsultationSummaryErrorCode.DEEPL_TRANSLATION_FAILED
+            );
+        }
     }
 }

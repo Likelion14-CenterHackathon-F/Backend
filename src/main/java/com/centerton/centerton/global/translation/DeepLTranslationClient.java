@@ -1,9 +1,5 @@
-package com.centerton.centerton.domain.consultationsummary.client;
+package com.centerton.centerton.global.translation;
 
-import com.centerton.centerton.domain.consultationsummary.config.DeepLProperties;
-import com.centerton.centerton.domain.consultationsummary.dto.SummaryLanguage;
-import com.centerton.centerton.domain.consultationsummary.exception.ConsultationSummaryErrorCode;
-import com.centerton.centerton.global.exception.BaseException;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -15,6 +11,8 @@ import java.util.List;
 
 @Component
 public class DeepLTranslationClient {
+
+    private static final String KOREAN_SOURCE_CODE = "KO";
 
     private final RestClient restClient;
     private final DeepLProperties properties;
@@ -29,9 +27,9 @@ public class DeepLTranslationClient {
 
     public List<String> translateKoreanTexts(
             List<String> koreanTexts,
-            SummaryLanguage targetLanguage
+            String targetLanguageCode
     ) {
-        if (targetLanguage.isKorean() || koreanTexts.isEmpty()) {
+        if (isKorean(targetLanguageCode) || koreanTexts.isEmpty()) {
             return List.copyOf(koreanTexts);
         }
 
@@ -51,8 +49,8 @@ public class DeepLTranslationClient {
         validateConfiguration();
         DeepLTranslateRequest request = new DeepLTranslateRequest(
                 translatableTexts,
-                "KO",
-                targetLanguage.getDeepLTargetCode(),
+                KOREAN_SOURCE_CODE,
+                targetLanguageCode,
                 true
         );
 
@@ -67,7 +65,7 @@ public class DeepLTranslationClient {
             if (response == null
                     || response.translations() == null
                     || response.translations().size() != translatableTexts.size()) {
-                throw new IllegalStateException("DeepL 번역 개수가 요청과 일치하지 않습니다.");
+                throw new IllegalStateException("DeepL translation count does not match request count.");
             }
 
             List<String> translatedTexts = new ArrayList<>(koreanTexts);
@@ -79,17 +77,19 @@ public class DeepLTranslationClient {
             }
             return List.copyOf(translatedTexts);
         } catch (RestClientException | IllegalStateException exception) {
-            throw new BaseException(
-                    ConsultationSummaryErrorCode.DEEPL_TRANSLATION_FAILED
-            );
+            throw new DeepLTranslationException();
         }
+    }
+
+    private boolean isKorean(String targetLanguageCode) {
+        return targetLanguageCode == null
+                || targetLanguageCode.isBlank()
+                || KOREAN_SOURCE_CODE.equalsIgnoreCase(targetLanguageCode.trim());
     }
 
     private void validateConfiguration() {
         if (properties.getAuthKey() == null || properties.getAuthKey().isBlank()) {
-            throw new BaseException(
-                    ConsultationSummaryErrorCode.DEEPL_CONFIGURATION_MISSING
-            );
+            throw new DeepLConfigurationException();
         }
     }
 
