@@ -1,5 +1,6 @@
 package com.centerton.centerton.global.jwt;
 
+import com.centerton.centerton.domain.patient.entity.enums.Language;
 import com.centerton.centerton.domain.patient.entity.Patient;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
@@ -12,9 +13,15 @@ import java.util.Collections;
 public class PatientDetails implements UserDetails {
 
     private final Patient patient;
+    private final Language language;
 
     public PatientDetails(Patient patient) {
+        this(patient, patient.getLanguage());
+    }
+
+    public PatientDetails(Patient patient, Language language) {
         this.patient = patient;
+        this.language = language;
     }
 
     public Long getPatientId() {

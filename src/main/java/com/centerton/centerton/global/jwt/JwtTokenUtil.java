@@ -1,5 +1,6 @@
 package com.centerton.centerton.global.jwt;
 
+import com.centerton.centerton.domain.patient.entity.enums.Language;
 import com.centerton.centerton.global.jwt.exception.TokenInvalidException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -14,6 +15,8 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class JwtTokenUtil {
 
+    private static final String CLAIM_LANGUAGE = "language";
+
     private final JwtParser parser;
 
     public Claims parseClaims(String token) {
@@ -22,6 +25,19 @@ public class JwtTokenUtil {
 
     public Long getPatientId(String token) {
         return Long.valueOf(parseClaims(token).getSubject());
+    }
+
+    public Language getPatientLanguage(String token) {
+        String language = parseClaims(token).get(CLAIM_LANGUAGE, String.class);
+        if (!StringUtils.hasText(language)) {
+            return null;
+        }
+
+        try {
+            return Language.fromValue(language);
+        } catch (RuntimeException exception) {
+            throw new TokenInvalidException();
+        }
     }
 
     public void validateTokenOrThrow(String token) {

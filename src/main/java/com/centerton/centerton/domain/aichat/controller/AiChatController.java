@@ -48,6 +48,7 @@ public class AiChatController {
         return SuccessResponse.created(
                 aiChatService.createSymptomInquiry(
                         patientDetails.getPatientId(),
+                        patientDetails.getLanguage(),
                         request
                 )
         );
@@ -58,7 +59,10 @@ public class AiChatController {
             @AuthenticationPrincipal PatientDetails patientDetails
     ) {
         return SuccessResponse.from(
-                aiChatService.getChatRooms(patientDetails.getPatientId())
+                aiChatService.getChatRooms(
+                        patientDetails.getPatientId(),
+                        patientDetails.getLanguage()
+                )
         );
     }
 
@@ -70,6 +74,7 @@ public class AiChatController {
         return SuccessResponse.from(
                 aiChatService.getChatRoomMessages(
                         patientDetails.getPatientId(),
+                        patientDetails.getLanguage(),
                         roomId
                 )
         );

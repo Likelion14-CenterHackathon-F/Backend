@@ -31,7 +31,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/patients/*/access-links").permitAll()
                         .requestMatchers(HttpMethod.POST, "/patients/access-links/verify").permitAll()
-                        .requestMatchers(HttpMethod.PATCH, "/patients/*/settings").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception

@@ -1,4 +1,4 @@
-package com.centerton.centerton.domain.consultationsummary.config;
+package com.centerton.centerton.global.translation;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -6,15 +6,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
 
 @Configuration
-@EnableConfigurationProperties(GeminiProperties.class)
-public class ConsultationSummaryAiConfig {
+@EnableConfigurationProperties(DeepLProperties.class)
+public class DeepLConfig {
 
     @Bean
-    public RestClient geminiRestClient(
+    public RestClient deepLRestClient(
             RestClient.Builder builder,
-            GeminiProperties properties
+            DeepLProperties properties
     ) {
         return builder.baseUrl(properties.getBaseUrl()).build();
     }
-
 }

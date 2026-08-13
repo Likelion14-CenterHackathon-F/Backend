@@ -5,6 +5,8 @@ import com.centerton.centerton.domain.patient.exception.PatientNotFoundException
 import com.centerton.centerton.domain.patient.exception.PatientSettingsInvalidException;
 import com.centerton.centerton.domain.patient.repository.PatientRepository;
 import com.centerton.centerton.domain.patient.web.dto.PatientSettingsUpdateReq;
+import com.centerton.centerton.domain.patient.web.dto.PatientSettingsUpdateRes;
+import com.centerton.centerton.global.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,10 +25,14 @@ public class PatientServiceImpl implements PatientService {
     private static final Set<String> ISO_COUNTRY_CODES = Set.of(Locale.getISOCountries());
 
     private final PatientRepository patientRepository;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     @Transactional
-    public void updateSettings(Long patientId, PatientSettingsUpdateReq request) {
+    public PatientSettingsUpdateRes updateSettings(
+            Long patientId,
+            PatientSettingsUpdateReq request
+    ) {
         validateSettingsRequest(request);
 
         Patient patient = patientRepository.findById(patientId)
@@ -35,6 +41,13 @@ public class PatientServiceImpl implements PatientService {
         String nationality = resolveNationality(request.nationality());
         String timezoneId = resolveTimezoneId(request.timezoneId());
         patient.updateSettings(request.language(), nationality, timezoneId);
+
+        String accessToken = jwtTokenProvider.createPatientAccessToken(
+                patient.getId(),
+                patient.getLanguage()
+        );
+
+        return PatientSettingsUpdateRes.of(patient, accessToken);
     }
 
     private void validateSettingsRequest(PatientSettingsUpdateReq request) {
