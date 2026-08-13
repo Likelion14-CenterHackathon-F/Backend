@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import static com.centerton.centerton.global.constant.StaticValue.BAD_REQUEST;
-import static com.centerton.centerton.global.constant.StaticValue.FORBIDDEN;
 import static com.centerton.centerton.global.constant.StaticValue.INTERNAL_SERVER_ERROR;
 import static com.centerton.centerton.global.constant.StaticValue.NOT_FOUND;
 import static com.centerton.centerton.global.constant.StaticValue.UNSUPPORTED_MEDIA_TYPE;
@@ -21,7 +20,6 @@ public enum AiChatErrorCode implements BaseResponseCode {
     IMAGE_TYPE_UNSUPPORTED("AI_CHAT_415_1", UNSUPPORTED_MEDIA_TYPE, "JPG, PNG, WEBP 형식의 이미지만 첨부할 수 있습니다."),
     CHAT_ROOM_NOT_FOUND("AI_CHAT_404_1", NOT_FOUND, "채팅방을 찾을 수 없습니다."),
     IMAGE_NOT_FOUND("AI_CHAT_404_2", NOT_FOUND, "첨부 이미지를 찾을 수 없습니다."),
-    CHAT_ROOM_ACCESS_DENIED("AI_CHAT_403_1", FORBIDDEN, "해당 채팅방에 접근할 수 없습니다."),
     IMAGE_STORAGE_FAILED("AI_CHAT_500_1", INTERNAL_SERVER_ERROR, "첨부 이미지 저장에 실패했습니다. 잠시 후 다시 시도해주세요."),
     OPENAI_CONFIGURATION_MISSING("AI_CHAT_500_2", INTERNAL_SERVER_ERROR, "OpenAI API 설정이 누락되었습니다."),
     OPENAI_RESPONSE_FAILED("AI_CHAT_500_3", INTERNAL_SERVER_ERROR, "현재 AI 통신이 불안정합니다. 잠시 후 다시 시도해주세요.");

@@ -3,11 +3,13 @@ package com.centerton.centerton.domain.aichat.controller;
 import com.centerton.centerton.domain.aichat.dto.request.AiChatSymptomInquiryReq;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatDownloadImage;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatRoomListRes;
+import com.centerton.centerton.domain.aichat.dto.response.AiChatRoomMessagesRes;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatSymptomInquiryRes;
 import com.centerton.centerton.domain.aichat.service.AiChatService;
 import com.centerton.centerton.global.jwt.PatientDetails;
 import com.centerton.centerton.global.response.SuccessResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
@@ -57,6 +59,19 @@ public class AiChatController {
     ) {
         return SuccessResponse.from(
                 aiChatService.getChatRooms(patientDetails.getPatientId())
+        );
+    }
+
+    @GetMapping("/rooms/{roomId}/messages")
+    public SuccessResponse<AiChatRoomMessagesRes> getChatRoomMessages(
+            @AuthenticationPrincipal PatientDetails patientDetails,
+            @PathVariable @Positive Long roomId
+    ) {
+        return SuccessResponse.from(
+                aiChatService.getChatRoomMessages(
+                        patientDetails.getPatientId(),
+                        roomId
+                )
         );
     }
 

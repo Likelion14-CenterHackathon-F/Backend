@@ -3,6 +3,7 @@ package com.centerton.centerton.domain.aichat.service;
 import com.centerton.centerton.domain.aichat.dto.request.AiChatSymptomInquiryReq;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatDownloadImage;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatRoomListRes;
+import com.centerton.centerton.domain.aichat.dto.response.AiChatRoomMessagesRes;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatSymptomInquiryRes;
 import com.centerton.centerton.domain.aichat.entity.AiChatMessage;
 import com.centerton.centerton.domain.aichat.exception.AiChatErrorCode;
@@ -90,6 +91,18 @@ public class AiChatService {
                 .stream()
                 .map(AiChatRoomListRes::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public AiChatRoomMessagesRes getChatRoomMessages(
+            Long patientId,
+            Long roomId
+    ) {
+        return chatRoomRepository.findByChatRoomIdAndPatientId(roomId, patientId)
+                .map(AiChatRoomMessagesRes::from)
+                .orElseThrow(() -> new BaseException(
+                        AiChatErrorCode.CHAT_ROOM_NOT_FOUND
+                ));
     }
 
     @Transactional(readOnly = true)

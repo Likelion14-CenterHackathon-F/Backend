@@ -89,11 +89,11 @@ public class AiChatRoom extends BaseEntity {
     private AiChatMessage addMessage(ChatMessageRole role, String content, LocalDateTime sentAt) {
         AiChatMessage message = AiChatMessage.create(this, role, content, sentAt);
         messages.add(message);
-        updateLastMessage(content, sentAt);
+        updateLastMessageAt(sentAt);
         return message;
     }
 
-    private void updateLastMessage(String content, LocalDateTime sentAt) {
+    private void updateLastMessageAt(LocalDateTime sentAt) {
         lastMessageAt = sentAt;
     }
 
