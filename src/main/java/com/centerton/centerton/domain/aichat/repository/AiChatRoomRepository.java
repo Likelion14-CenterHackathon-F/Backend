@@ -1,0 +1,34 @@
+package com.centerton.centerton.domain.aichat.repository;
+
+import com.centerton.centerton.domain.aichat.entity.AiChatRoom;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface AiChatRoomRepository extends JpaRepository<AiChatRoom, Long> {
+
+    List<AiChatRoom> findAllByPatientIdOrderByLastMessageAtDescChatRoomIdDesc(Long patientId);
+
+    @EntityGraph(attributePaths = "messages")
+    Optional<AiChatRoom> findByChatRoomIdAndPatientId(Long chatRoomId, Long patientId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select chatRoom
+            from AiChatRoom chatRoom
+            where chatRoom.chatRoomId = :chatRoomId
+              and chatRoom.patient.id = :patientId
+            """)
+    Optional<AiChatRoom> findByIdAndPatientIdForUpdate(
+            @Param("chatRoomId") Long chatRoomId,
+            @Param("patientId") Long patientId
+    );
+}
