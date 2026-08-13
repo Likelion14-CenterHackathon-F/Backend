@@ -15,7 +15,7 @@ public class WebConfig implements WebMvcConfigurer {
     private final String[] allowedOriginPatterns;
 
     public WebConfig(
-            @Value("${cors.allowed-origins:https://kanage.vercel.app}") String allowedOrigins,
+            @Value("${cors.allowed-origins:https://kanage.vercel.app,http://localhost:5173}") String allowedOrigins,
             @Value("${cors.allowed-origin-patterns:}") String allowedOriginPatterns
     ) {
         this.allowedOrigins = parseCsv(allowedOrigins);
