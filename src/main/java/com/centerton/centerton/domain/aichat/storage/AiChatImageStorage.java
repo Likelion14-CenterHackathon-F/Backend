@@ -11,7 +11,9 @@ public interface AiChatImageStorage {
 
     String resolveDisplayImageUrl(String storedFileName);
 
-    String resolveAnalysisImageUrl(String storedFileName, String contentType);
+    String resolveAnalysisImageUrl(String storedFileName);
+
+    String resolveContentType(String storedFileName);
 
     void delete(String storedFileName);
 }

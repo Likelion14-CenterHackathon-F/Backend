@@ -68,10 +68,7 @@ public class LocalAiChatImageStorage implements AiChatImageStorage {
 
             return new StoredAiChatImage(
                     storedFileName,
-                    resolveDisplayImageUrl(storedFileName),
-                    sanitizeOriginalFileName(image.getOriginalFilename()),
-                    validatedImage.imageType().getResponseContentType(),
-                    image.getSize()
+                    resolveDisplayImageUrl(storedFileName)
             );
         } catch (IOException exception) {
             deleteTemporaryFile(temporaryFile);
@@ -96,19 +93,22 @@ public class LocalAiChatImageStorage implements AiChatImageStorage {
     }
 
     @Override
-    public String resolveAnalysisImageUrl(
-            String storedFileName,
-            String contentType
-    ) {
+    public String resolveAnalysisImageUrl(String storedFileName) {
         try {
             byte[] bytes = Files.readAllBytes(resolveStoredPath(storedFileName));
             return "data:"
-                    + contentType
+                    + resolveContentType(storedFileName)
                     + ";base64,"
                     + Base64.getEncoder().encodeToString(bytes);
         } catch (IOException exception) {
             throw new BaseException(AiChatErrorCode.IMAGE_NOT_FOUND);
         }
+    }
+
+    @Override
+    public String resolveContentType(String storedFileName) {
+        return imageValidator.resolveStoredImageType(storedFileName)
+                .getResponseContentType();
     }
 
     @Override
@@ -143,20 +143,6 @@ public class LocalAiChatImageStorage implements AiChatImageStorage {
         }
 
         return storedPath;
-    }
-
-    private String sanitizeOriginalFileName(String originalFileName) {
-        if (originalFileName == null || originalFileName.isBlank()) {
-            return null;
-        }
-
-        String normalized = originalFileName.replace("\\", "/");
-        int separatorIndex = normalized.lastIndexOf('/');
-
-        if (separatorIndex >= 0) {
-            return normalized.substring(separatorIndex + 1);
-        }
-        return normalized;
     }
 
     private void deleteTemporaryFile(Path temporaryFile) {

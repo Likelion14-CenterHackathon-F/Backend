@@ -13,7 +13,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -21,8 +20,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-
-import static jakarta.persistence.CascadeType.ALL;
 
 @Getter
 @Entity
@@ -51,20 +48,15 @@ public class AiChatMessage extends BaseEntity {
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "image_url", length = 2048)
+    private String imageUrl;
+
     @Column(name = "sent_at", nullable = false)
     private LocalDateTime sentAt;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "chat_room_id", nullable = false)
     private AiChatRoom chatRoom;
-
-    @OneToOne(
-            mappedBy = "chatMessage",
-            cascade = ALL,
-            orphanRemoval = true,
-            fetch = FetchType.LAZY
-    )
-    private AiChatImageAttachment imageAttachment;
 
     public static AiChatMessage create(
             AiChatRoom chatRoom,
@@ -76,27 +68,14 @@ public class AiChatMessage extends BaseEntity {
                 null,
                 role,
                 content,
+                null,
                 sentAt,
-                chatRoom,
-                null
+                chatRoom
         );
     }
 
-    public void attachImage(
-            String storedFileName,
-            String imageUrl,
-            String originalFileName,
-            String contentType,
-            Long sizeBytes
-    ) {
-        this.imageAttachment = AiChatImageAttachment.create(
-                this,
-                storedFileName,
-                imageUrl,
-                originalFileName,
-                contentType,
-                sizeBytes
-        );
+    public void attachImage(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public boolean isUserMessage() {

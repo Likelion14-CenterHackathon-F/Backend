@@ -39,7 +39,6 @@ import java.util.List;
 public class AiChatRoom extends BaseEntity {
 
     private static final int TITLE_MAX_LENGTH = 40;
-    private static final int PREVIEW_MAX_LENGTH = 500;
     private static final String DEFAULT_TITLE = "새로운 증상 문의";
 
     @Id
@@ -49,9 +48,6 @@ public class AiChatRoom extends BaseEntity {
 
     @Column(name = "title", nullable = false, length = 80)
     private String title;
-
-    @Column(name = "last_message_preview", length = 500)
-    private String lastMessagePreview;
 
     @Column(name = "last_message_at")
     private LocalDateTime lastMessageAt;
@@ -71,7 +67,6 @@ public class AiChatRoom extends BaseEntity {
     private AiChatRoom(Patient patient, String firstQuestion, LocalDateTime now) {
         this.patient = patient;
         this.title = createTitle(firstQuestion);
-        this.lastMessagePreview = createPreview(firstQuestion);
         this.lastMessageAt = now;
     }
 
@@ -99,7 +94,6 @@ public class AiChatRoom extends BaseEntity {
     }
 
     private void updateLastMessage(String content, LocalDateTime sentAt) {
-        lastMessagePreview = createPreview(content);
         lastMessageAt = sentAt;
     }
 
@@ -112,14 +106,6 @@ public class AiChatRoom extends BaseEntity {
             return normalized;
         }
         return normalized.substring(0, TITLE_MAX_LENGTH);
-    }
-
-    private static String createPreview(String content) {
-        String normalized = normalize(content);
-        if (normalized.length() <= PREVIEW_MAX_LENGTH) {
-            return normalized;
-        }
-        return normalized.substring(0, PREVIEW_MAX_LENGTH);
     }
 
     private static String normalize(String content) {

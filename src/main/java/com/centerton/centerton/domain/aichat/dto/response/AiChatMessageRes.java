@@ -9,8 +9,8 @@ public record AiChatMessageRes(
         Long messageId,
         ChatMessageRole role,
         String content,
-        LocalDateTime sentAt,
-        AiChatImageAttachmentRes image
+        String imageUrl,
+        LocalDateTime sentAt
 ) {
 
     public static AiChatMessageRes from(AiChatMessage message) {
@@ -18,8 +18,8 @@ public record AiChatMessageRes(
                 message.getChatMessageId(),
                 message.getRole(),
                 message.getContent(),
-                message.getSentAt(),
-                AiChatImageAttachmentRes.from(message.getImageAttachment())
+                message.getImageUrl(),
+                message.getSentAt()
         );
     }
 }

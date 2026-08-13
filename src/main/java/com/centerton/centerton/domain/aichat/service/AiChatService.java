@@ -3,18 +3,11 @@ package com.centerton.centerton.domain.aichat.service;
 import com.centerton.centerton.domain.aichat.dto.request.AiChatSymptomInquiryReq;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatDownloadImage;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatSymptomInquiryRes;
-import com.centerton.centerton.domain.aichat.entity.AiChatImageAttachment;
 import com.centerton.centerton.domain.aichat.entity.AiChatMessage;
-import com.centerton.centerton.domain.aichat.entity.AiChatRoom;
 import com.centerton.centerton.domain.aichat.exception.AiChatErrorCode;
-import com.centerton.centerton.domain.aichat.repository.AiChatImageAttachmentRepository;
 import com.centerton.centerton.domain.aichat.repository.AiChatMessageRepository;
-import com.centerton.centerton.domain.aichat.repository.AiChatRoomRepository;
 import com.centerton.centerton.domain.aichat.storage.AiChatImageStorage;
 import com.centerton.centerton.domain.aichat.storage.StoredAiChatImage;
-import com.centerton.centerton.domain.patient.entity.Patient;
-import com.centerton.centerton.domain.patient.exception.PatientErrorCode;
-import com.centerton.centerton.domain.patient.repository.PatientRepository;
 import com.centerton.centerton.global.exception.BaseException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -33,66 +25,57 @@ public class AiChatService {
 
     private static final int MAX_QUESTION_LENGTH = 1000;
 
-    private final PatientRepository patientRepository;
-    private final AiChatRoomRepository chatRoomRepository;
     private final AiChatMessageRepository chatMessageRepository;
-    private final AiChatImageAttachmentRepository imageAttachmentRepository;
     private final AiChatImageStorage imageStorage;
     private final AiChatAnswerService answerService;
+    private final AiChatTransactionService transactionService;
 
-    @Transactional
     public AiChatSymptomInquiryRes createSymptomInquiry(
             Long patientId,
             AiChatSymptomInquiryReq request
     ) {
         String question = normalizeQuestion(request.getQuestion());
         StoredAiChatImage storedImage = null;
+        boolean userMessageSaved = false;
 
         try {
             if (hasImage(request.getImage())) {
                 storedImage = imageStorage.store(request.getImage());
             }
 
-            Patient patient = getPatient(patientId);
             LocalDateTime userSentAt = nowUtc();
-            AiChatRoom chatRoom = getOrCreateChatRoom(
-                    patient,
+            SavedAiChatUserMessage savedUserMessage = transactionService.saveUserMessage(
+                    patientId,
                     request.getRoomId(),
                     question,
+                    resolveDisplayImageUrl(storedImage),
                     userSentAt
             );
-
-            List<AiChatAnswerMessage> previousMessages = toAnswerMessages(
-                    chatRoom.getMessages()
-            );
-
-            AiChatMessage userMessage = chatRoom.addUserMessage(
-                    question,
-                    userSentAt
-            );
-            attachImageIfPresent(userMessage, storedImage);
-            chatMessageRepository.save(userMessage);
+            userMessageSaved = true;
 
             String analysisImageUrl = resolveAnalysisImageUrl(storedImage);
             String answer = answerService.generateAnswer(new AiChatAnswerRequest(
                     question,
                     analysisImageUrl,
-                    previousMessages
+                    savedUserMessage.previousMessages()
             ));
 
-            AiChatMessage assistantMessage = chatRoom.addAssistantMessage(
+            AiChatMessage assistantMessage = transactionService.saveAssistantMessage(
+                    patientId,
+                    savedUserMessage.chatRoom().getChatRoomId(),
                     answer,
                     nowUtc()
             );
-            chatMessageRepository.save(assistantMessage);
 
             return AiChatSymptomInquiryRes.of(
-                    chatRoom,
-                    userMessage,
+                    savedUserMessage.chatRoom(),
+                    savedUserMessage.userMessage(),
                     assistantMessage
             );
         } catch (RuntimeException exception) {
-            deleteStoredImageQuietly(storedImage);
+            if (!userMessageSaved) {
+                deleteStoredImageQuietly(storedImage);
+            }
             throw exception;
         }
     }
@@ -103,46 +86,16 @@ public class AiChatService {
             String storedFileName
     ) {
         String imageUrl = imageStorage.resolveDisplayImageUrl(storedFileName);
-        AiChatImageAttachment imageAttachment = imageAttachmentRepository
-                .findAccessibleImage(imageUrl, patientId)
+        chatMessageRepository.findAccessibleImageMessage(imageUrl, patientId)
                 .orElseThrow(() -> new BaseException(
                         AiChatErrorCode.IMAGE_NOT_FOUND
                 ));
 
         return new AiChatDownloadImage(
-                imageAttachment.getStoredFileName(),
-                imageAttachment.getContentType(),
-                imageStorage.load(imageAttachment.getStoredFileName())
+                storedFileName,
+                imageStorage.resolveContentType(storedFileName),
+                imageStorage.load(storedFileName)
         );
-    }
-
-    private AiChatRoom getOrCreateChatRoom(
-            Patient patient,
-            Long roomId,
-            String question,
-            LocalDateTime now
-    ) {
-        if (roomId == null) {
-            AiChatRoom chatRoom = AiChatRoom.create(
-                    patient,
-                    question,
-                    now
-            );
-            return chatRoomRepository.save(chatRoom);
-        }
-
-        return chatRoomRepository
-                .findByIdAndPatientIdForUpdate(roomId, patient.getId())
-                .orElseThrow(() -> new BaseException(
-                        AiChatErrorCode.CHAT_ROOM_NOT_FOUND
-                ));
-    }
-
-    private Patient getPatient(Long patientId) {
-        return patientRepository.findById(patientId)
-                .orElseThrow(() -> new BaseException(
-                        PatientErrorCode.PATIENT_NOT_FOUND
-                ));
     }
 
     private String normalizeQuestion(String question) {
@@ -169,21 +122,12 @@ public class AiChatService {
         return true;
     }
 
-    private void attachImageIfPresent(
-            AiChatMessage userMessage,
-            StoredAiChatImage storedImage
-    ) {
+    private String resolveDisplayImageUrl(StoredAiChatImage storedImage) {
         if (storedImage == null) {
-            return;
+            return null;
         }
 
-        userMessage.attachImage(
-                storedImage.storedFileName(),
-                storedImage.imageUrl(),
-                storedImage.originalFileName(),
-                storedImage.contentType(),
-                storedImage.sizeBytes()
-        );
+        return storedImage.imageUrl();
     }
 
     private String resolveAnalysisImageUrl(StoredAiChatImage storedImage) {
@@ -191,19 +135,7 @@ public class AiChatService {
             return null;
         }
 
-        return imageStorage.resolveAnalysisImageUrl(
-                storedImage.storedFileName(),
-                storedImage.contentType()
-        );
-    }
-
-    private List<AiChatAnswerMessage> toAnswerMessages(List<AiChatMessage> messages) {
-        return messages.stream()
-                .map(message -> new AiChatAnswerMessage(
-                        message.getRole(),
-                        message.getContent()
-                ))
-                .toList();
+        return imageStorage.resolveAnalysisImageUrl(storedImage.storedFileName());
     }
 
     private LocalDateTime nowUtc() {
