@@ -19,6 +19,8 @@ import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
 import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCode;
 import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
 import com.centerton.centerton.domain.consultation.repository.TranscriptSegmentRepository;
+import com.centerton.centerton.domain.preconsultationsubmission.entity.PreconsultSubmission;
+import com.centerton.centerton.domain.preconsultationsubmission.repository.PreconsultSubmissionRepository;
 import com.centerton.centerton.global.exception.BaseException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -30,6 +32,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.UUID;
@@ -45,6 +48,7 @@ public class ConsultationService {
     private final AppointmentAccessPolicy appointmentAccessPolicy;
     private final AppointmentRepository appointmentRepository;
     private final ReservationSlotRepository reservationSlotRepository;
+    private final PreconsultSubmissionRepository submissionRepository;
     private final ConsultationTransactionService transactionService;
     private final AgoraRtcTokenService rtcTokenService;
     private final AgoraSttClient sttClient;
@@ -56,6 +60,7 @@ public class ConsultationService {
             AppointmentAccessPolicy appointmentAccessPolicy,
             AppointmentRepository appointmentRepository,
             ReservationSlotRepository reservationSlotRepository,
+            PreconsultSubmissionRepository submissionRepository,
             ConsultationTransactionService transactionService,
             AgoraRtcTokenService rtcTokenService,
             AgoraSttClient sttClient,
@@ -66,6 +71,7 @@ public class ConsultationService {
         this.appointmentAccessPolicy = appointmentAccessPolicy;
         this.appointmentRepository = appointmentRepository;
         this.reservationSlotRepository = reservationSlotRepository;
+        this.submissionRepository = submissionRepository;
         this.transactionService = transactionService;
         this.rtcTokenService = rtcTokenService;
         this.sttClient = sttClient;
@@ -297,6 +303,9 @@ public class ConsultationService {
 
         List<Appointment> appointments = appointmentRepository
                 .findAllByPatientIdOrderByAppointmentIdDesc(patientId);
+        List<Long> appointmentIds = appointments.stream()
+                .map(Appointment::getAppointmentId)
+                .toList();
         Map<Long, ReservationSlot> slotsById = reservationSlotRepository
                 .findAllById(appointments.stream()
                         .map(Appointment::getSlotId)
@@ -307,18 +316,41 @@ public class ConsultationService {
                         ReservationSlot::getSlotId,
                         Function.identity()
                 ));
+        Map<Long, PreconsultSubmission> submissionsByAppointmentId =
+                appointmentIds.isEmpty()
+                        ? Map.of()
+                        : submissionRepository
+                                .findAllByAppointmentAppointmentIdIn(
+                                        appointmentIds
+                                )
+                                .stream()
+                                .collect(Collectors.toMap(
+                                        PreconsultSubmission::getAppointmentId,
+                                        Function.identity()
+                                ));
+        Set<Long> sessionIdsWithTranscript = sessionsByAppointmentId.isEmpty()
+                ? Set.of()
+                : transcriptRepository.findSessionIdsWithTranscript(
+                        sessionsByAppointmentId.values().stream()
+                                .map(ConsultationSession::getSessionId)
+                                .toList()
+                );
 
         return appointments.stream()
                 .filter(appointment -> appointment.isCancelled()
-                        || sessionsByAppointmentId.containsKey(
+                        || isCompleted(sessionsByAppointmentId.get(
                                 appointment.getAppointmentId()
-                        ))
+                        )))
                 .map(appointment -> toHistory(
                         appointment,
                         slotsById.get(appointment.getSlotId()),
                         sessionsByAppointmentId.get(
                                 appointment.getAppointmentId()
-                        )
+                        ),
+                        submissionsByAppointmentId.get(
+                                appointment.getAppointmentId()
+                        ),
+                        sessionIdsWithTranscript
                 ))
                 .sorted(Comparator.comparing(
                         ConsultationHistoryRes::appointmentStartsAt,
@@ -330,7 +362,9 @@ public class ConsultationService {
     private ConsultationHistoryRes toHistory(
             Appointment appointment,
             ReservationSlot slot,
-            ConsultationSession session
+            ConsultationSession session,
+            PreconsultSubmission submission,
+            Set<Long> sessionIdsWithTranscript
     ) {
         AppointmentStatus status = appointment.getStatus();
         if (session != null && session.isCompleted()
@@ -344,15 +378,21 @@ public class ConsultationService {
                 session == null ? null : session.getStartedAt(),
                 session == null ? null : session.getEndedAt(),
                 session == null ? null : session.getActualDurationSeconds(),
-                session != null && transcriptRepository
-                        .existsByConsultationSessionSessionId(
-                                session.getSessionId()
-                        ),
+                session != null && sessionIdsWithTranscript.contains(
+                        session.getSessionId()
+                ),
                 slot == null ? null : slot.getStartsAt(),
+                slot == null ? null : slot.getEndsAt(),
+                submission == null ? null : submission.getSymptomCategory(),
+                submission == null ? null : submission.getSymptomNote(),
                 status,
                 appointment.getCancelReason(),
                 appointment.getCancelledAt()
         );
+    }
+
+    private boolean isCompleted(ConsultationSession session) {
+        return session != null && session.isCompleted();
     }
 
     private ConsultationSession getSession(Long appointmentId) {
