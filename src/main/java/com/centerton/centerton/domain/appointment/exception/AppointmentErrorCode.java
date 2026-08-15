@@ -43,12 +43,6 @@ public enum AppointmentErrorCode implements BaseResponseCode {
             "상담 시작 1시간 전까지만 예약할 수 있습니다."
     ),
 
-    ACTIVE_APPOINTMENT_ALREADY_EXISTS(
-            "APPOINTMENT_409_2",
-            CONFLICT,
-            "이미 활성화된 화상상담 예약이 있습니다."
-    ),
-
     APPOINTMENT_ALREADY_STARTED(
             "APPOINTMENT_409_3",
             CONFLICT,

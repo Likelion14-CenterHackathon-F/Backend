@@ -10,8 +10,6 @@ import com.centerton.centerton.domain.appointment.exception.AppointmentErrorCode
 import com.centerton.centerton.domain.appointment.policy.AppointmentTimePolicy;
 import com.centerton.centerton.domain.appointment.repository.AppointmentRepository;
 import com.centerton.centerton.domain.appointment.repository.ReservationSlotRepository;
-import com.centerton.centerton.domain.patient.exception.PatientErrorCode;
-import com.centerton.centerton.domain.patient.repository.PatientRepository;
 import com.centerton.centerton.domain.preconsultationsubmission.entity.FileAsset;
 import com.centerton.centerton.domain.preconsultationsubmission.entity.PreconsultSubmission;
 import com.centerton.centerton.domain.preconsultationsubmission.repository.FileAssetRepository;
@@ -30,7 +28,6 @@ public class AppointmentReservationTransactionService {
 
     private final AppointmentRepository appointmentRepository;
     private final ReservationSlotRepository reservationSlotRepository;
-    private final PatientRepository patientRepository;
     private final AftercareCaseRepository aftercareCaseRepository;
     private final PreconsultSubmissionRepository submissionRepository;
     private final FileAssetRepository fileAssetRepository;
@@ -42,13 +39,7 @@ public class AppointmentReservationTransactionService {
             PreconsultSubmissionService.PreparedPreconsultSubmission prepared,
             LocalDateTime nowUtc
     ) {
-        lockPatient(patientId);
         validateAftercareCaseOwner(request.getCaseId(), patientId);
-        ensureNoActiveAppointment(
-                patientId,
-                request.getCaseId(),
-                nowUtc
-        );
 
         ReservationSlot slot = reservationSlotRepository
                 .findByIdForUpdate(request.getSlotId())
@@ -94,31 +85,6 @@ public class AppointmentReservationTransactionService {
         )) {
             throw new BaseException(
                     AftercareErrorCode.AFTERCARE_CASE_NOT_FOUND
-            );
-        }
-    }
-
-    private void lockPatient(Long patientId) {
-        patientRepository.findByIdForUpdate(patientId)
-                .orElseThrow(() -> new BaseException(
-                        PatientErrorCode.PATIENT_NOT_FOUND
-                ));
-    }
-
-    private void ensureNoActiveAppointment(
-            Long patientId,
-            Long caseId,
-            LocalDateTime nowUtc
-    ) {
-        if (!appointmentRepository.findActiveByPatientIdAndCaseId(
-                patientId,
-                caseId,
-                nowUtc.minusMinutes(
-                        AppointmentTimePolicy.WAITING_ROOM_CLOSE_AFTER_MINUTES
-                )
-        ).isEmpty()) {
-            throw new BaseException(
-                    AppointmentErrorCode.ACTIVE_APPOINTMENT_ALREADY_EXISTS
             );
         }
     }
