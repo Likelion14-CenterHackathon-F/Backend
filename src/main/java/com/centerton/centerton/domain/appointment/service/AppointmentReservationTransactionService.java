@@ -1,5 +1,7 @@
 package com.centerton.centerton.domain.appointment.service;
 
+import com.centerton.centerton.domain.aftercare.exception.AftercareErrorCode;
+import com.centerton.centerton.domain.aftercare.repository.AftercareCaseRepository;
 import com.centerton.centerton.domain.appointment.dto.request.AppointmentCreateReq;
 import com.centerton.centerton.domain.appointment.entity.Appointment;
 import com.centerton.centerton.domain.appointment.entity.ReservationSlot;
@@ -29,6 +31,7 @@ public class AppointmentReservationTransactionService {
     private final AppointmentRepository appointmentRepository;
     private final ReservationSlotRepository reservationSlotRepository;
     private final PatientRepository patientRepository;
+    private final AftercareCaseRepository aftercareCaseRepository;
     private final PreconsultSubmissionRepository submissionRepository;
     private final FileAssetRepository fileAssetRepository;
 
@@ -40,6 +43,7 @@ public class AppointmentReservationTransactionService {
             LocalDateTime nowUtc
     ) {
         lockPatient(patientId);
+        validateAftercareCaseOwner(request.getCaseId(), patientId);
         ensureNoActiveAppointment(
                 patientId,
                 request.getCaseId(),
@@ -81,6 +85,17 @@ public class AppointmentReservationTransactionService {
         );
 
         return new CreatedAppointment(savedAppointment, slot);
+    }
+
+    private void validateAftercareCaseOwner(Long caseId, Long patientId) {
+        if (!aftercareCaseRepository.existsByCaseIdAndPatientId(
+                caseId,
+                patientId
+        )) {
+            throw new BaseException(
+                    AftercareErrorCode.AFTERCARE_CASE_NOT_FOUND
+            );
+        }
     }
 
     private void lockPatient(Long patientId) {
