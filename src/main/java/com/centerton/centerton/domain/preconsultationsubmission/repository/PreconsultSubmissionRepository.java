@@ -1,6 +1,7 @@
 package com.centerton.centerton.domain.preconsultationsubmission.repository;
 
 import com.centerton.centerton.domain.preconsultationsubmission.entity.PreconsultSubmission;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
@@ -11,8 +12,10 @@ public interface PreconsultSubmissionRepository extends JpaRepository<Preconsult
 
     boolean existsByAppointmentAppointmentId(Long appointmentId);
 
+    @EntityGraph(attributePaths = "symptomCategories")
     Optional<PreconsultSubmission> findByAppointmentAppointmentId(Long appointmentId);
 
+    @EntityGraph(attributePaths = "symptomCategories")
     List<PreconsultSubmission> findAllByAppointmentAppointmentIdIn(
             Collection<Long> appointmentIds
     );

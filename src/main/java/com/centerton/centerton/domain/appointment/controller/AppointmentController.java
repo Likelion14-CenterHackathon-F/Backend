@@ -4,6 +4,7 @@ import com.centerton.centerton.domain.appointment.dto.request.AppointmentCancelR
 import com.centerton.centerton.domain.appointment.dto.request.AppointmentChangeReq;
 import com.centerton.centerton.domain.appointment.dto.request.AppointmentCreateReq;
 import com.centerton.centerton.domain.appointment.dto.response.AppointmentDetailRes;
+import com.centerton.centerton.domain.appointment.dto.response.AppointmentInfoRes;
 import com.centerton.centerton.domain.appointment.dto.response.AppointmentLookupRes;
 import com.centerton.centerton.domain.appointment.dto.response.AvailableDateRes;
 import com.centerton.centerton.domain.appointment.dto.response.AvailableSlotListRes;
@@ -50,6 +51,19 @@ public class AppointmentController {
                 appointmentService.getAppointments(
                         patientDetails.getPatientId(),
                         caseId
+                )
+        );
+    }
+
+    @GetMapping("/{appointmentId}")
+    public SuccessResponse<AppointmentInfoRes> getAppointmentInfo(
+            @AuthenticationPrincipal PatientDetails patientDetails,
+            @PathVariable @Positive Long appointmentId
+    ) {
+        return SuccessResponse.from(
+                appointmentService.getAppointmentInfo(
+                        patientDetails.getPatientId(),
+                        appointmentId
                 )
         );
     }

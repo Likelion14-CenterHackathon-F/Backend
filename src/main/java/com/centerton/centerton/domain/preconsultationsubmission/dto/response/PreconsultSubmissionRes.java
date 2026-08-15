@@ -10,6 +10,7 @@ public record PreconsultSubmissionRes(
         Long submissionId,
         Long appointmentId,
         SymptomCategory symptomCategory,
+        List<SymptomCategory> symptomCategories,
         String symptomNote,
         List<PreconsultFileRes> files
 ) {
@@ -22,6 +23,7 @@ public record PreconsultSubmissionRes(
                 submission.getSubmissionId(),
                 submission.getAppointmentId(),
                 submission.getSymptomCategory(),
+                submission.getOrderedSymptomCategories(),
                 submission.getSymptomNote(),
                 fileAssets.stream()
                         .map(PreconsultFileRes::from)
