@@ -1,5 +1,7 @@
 package com.centerton.centerton.domain.consultation.service;
 
+import com.centerton.centerton.domain.appointment.repository.AppointmentRepository;
+import com.centerton.centerton.domain.appointment.entity.Appointment;
 import com.centerton.centerton.domain.consultation.dto.request.JoinConsultationReq;
 import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
 import com.centerton.centerton.domain.consultation.entity.enums.SttAgentStatus;
@@ -25,13 +27,16 @@ public class ConsultationTransactionService {
 
     private final ConsultationSessionRepository sessionRepository;
     private final ConsultationJoinPolicy joinPolicy;
+    private final AppointmentRepository appointmentRepository;
 
     public ConsultationTransactionService(
             ConsultationSessionRepository sessionRepository,
-            ConsultationJoinPolicy joinPolicy
+            ConsultationJoinPolicy joinPolicy,
+            AppointmentRepository appointmentRepository
     ) {
         this.sessionRepository = sessionRepository;
         this.joinPolicy = joinPolicy;
+        this.appointmentRepository = appointmentRepository;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -164,9 +169,15 @@ public class ConsultationTransactionService {
             boolean sttStopSucceeded,
             LocalDateTime endedAt
     ) {
+        Appointment appointment = appointmentRepository
+                .findByIdForUpdate(appointmentId)
+                .orElseThrow(() -> new BaseException(
+                        ConsultationErrorCode.CONSULTATION_NOT_FOUND
+                ));
         ConsultationSession session = getSessionForUpdate(appointmentId);
 
         if (session.isCompleted()) {
+            appointment.complete();
             return session;
         }
 
@@ -179,6 +190,7 @@ public class ConsultationTransactionService {
         }
 
         session.complete(endedAt);
+        appointment.complete();
         return sessionRepository.saveAndFlush(session);
     }
 

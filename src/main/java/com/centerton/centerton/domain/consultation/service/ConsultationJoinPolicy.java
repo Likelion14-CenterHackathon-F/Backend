@@ -27,6 +27,12 @@ public class ConsultationJoinPolicy {
                         AppointmentErrorCode.APPOINTMENT_NOT_FOUND
                 ));
 
+        if (appointment.isCancelled()) {
+            throw new BaseException(
+                    AppointmentErrorCode.APPOINTMENT_ALREADY_CANCELLED
+            );
+        }
+
         ReservationSlot slot = reservationSlotRepository
                 .findById(appointment.getSlotId())
                 .orElseThrow(() -> new BaseException(

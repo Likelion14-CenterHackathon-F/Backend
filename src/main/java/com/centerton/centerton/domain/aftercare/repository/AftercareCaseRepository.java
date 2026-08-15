@@ -10,6 +10,15 @@ import java.util.Optional;
 
 public interface AftercareCaseRepository extends JpaRepository<AftercareCase, Long> {
 
+    @Query("select case when count(aftercareCase) > 0 then true else false end "
+            + "from AftercareCase aftercareCase "
+            + "where aftercareCase.caseId = :caseId "
+            + "and aftercareCase.patient.id = :patientId")
+    boolean existsByCaseIdAndPatientId(
+            @Param("caseId") Long caseId,
+            @Param("patientId") Long patientId
+    );
+
     @EntityGraph(attributePaths = {"patient", "procedureRecord"})
     @Query("select aftercareCase from AftercareCase aftercareCase where aftercareCase.patient.id = :patientId")
     Optional<AftercareCase> findHomeByPatientId(@Param("patientId") Long patientId);

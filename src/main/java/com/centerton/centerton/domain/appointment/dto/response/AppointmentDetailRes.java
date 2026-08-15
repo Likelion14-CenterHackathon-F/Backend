@@ -1,5 +1,7 @@
 package com.centerton.centerton.domain.appointment.dto.response;
 
+import com.centerton.centerton.domain.appointment.entity.enums.AppointmentStatus;
+
 import java.time.OffsetDateTime;
 
 public record AppointmentDetailRes(
@@ -11,6 +13,7 @@ public record AppointmentDetailRes(
         OffsetDateTime waitingRoomOpensAt,
         OffsetDateTime waitingRoomClosesAt,
         boolean canEnterWaitingRoom,
-        String timezoneId
+        String timezoneId,
+        AppointmentStatus status
 ) {
 }

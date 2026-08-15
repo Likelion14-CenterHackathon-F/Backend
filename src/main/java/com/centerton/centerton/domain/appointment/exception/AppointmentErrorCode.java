@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import static com.centerton.centerton.global.constant.StaticValue.CONFLICT;
+import static com.centerton.centerton.global.constant.StaticValue.BAD_REQUEST;
 import static com.centerton.centerton.global.constant.StaticValue.FORBIDDEN;
 import static com.centerton.centerton.global.constant.StaticValue.NOT_FOUND;
 
@@ -30,10 +31,16 @@ public enum AppointmentErrorCode implements BaseResponseCode {
             "이미 마감되었거나 예약할 수 없는 시간 슬롯입니다."
     ),
 
-    ACTIVE_APPOINTMENT_ALREADY_EXISTS(
-            "APPOINTMENT_409_2",
+    RESERVATION_SLOT_ALREADY_RESERVED(
+            "APPOINTMENT_409_4",
             CONFLICT,
-            "이미 활성화된 화상상담 예약이 있습니다."
+            "이미 다른 사용자가 예약한 시간 슬롯입니다."
+    ),
+
+    RESERVATION_DEADLINE_PASSED(
+            "APPOINTMENT_409_5",
+            CONFLICT,
+            "상담 시작 1시간 전까지만 예약할 수 있습니다."
     ),
 
     APPOINTMENT_ALREADY_STARTED(
@@ -42,10 +49,28 @@ public enum AppointmentErrorCode implements BaseResponseCode {
             "이미 시작된 예약은 변경하거나 취소할 수 없습니다."
     ),
 
+    APPOINTMENT_CANCELLATION_DEADLINE_PASSED(
+            "APPOINTMENT_409_6",
+            CONFLICT,
+            "상담 시작 1시간 전까지만 예약을 취소할 수 있습니다."
+    ),
+
+    APPOINTMENT_ALREADY_CANCELLED(
+            "APPOINTMENT_409_7",
+            CONFLICT,
+            "이미 취소된 예약입니다."
+    ),
+
     APPOINTMENT_JOIN_NOT_ALLOWED(
             "APPOINTMENT_403_1",
             FORBIDDEN,
             "현재는 상담 대기실에 입장할 수 있는 시간이 아닙니다."
+    ),
+
+    INVALID_CANCELLATION_REASON(
+            "APPOINTMENT_400_1",
+            BAD_REQUEST,
+            "유효하지 않은 예약 취소 사유입니다."
     );
 
     private final String code;
