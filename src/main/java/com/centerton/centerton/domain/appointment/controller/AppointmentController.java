@@ -42,12 +42,12 @@ public class AppointmentController {
     private final AppointmentService appointmentService;
 
     @GetMapping
-    public SuccessResponse<AppointmentLookupRes> getAppointment(
+    public SuccessResponse<List<AppointmentLookupRes>> getAppointments(
             @AuthenticationPrincipal PatientDetails patientDetails,
             @RequestParam @Positive Long caseId
     ) {
         return SuccessResponse.from(
-                appointmentService.getAppointment(
+                appointmentService.getAppointments(
                         patientDetails.getPatientId(),
                         caseId
                 )

@@ -1,15 +1,22 @@
 package com.centerton.centerton.domain.appointment.dto.response;
 
+import com.centerton.centerton.domain.appointment.entity.enums.AppointmentStatus;
+import com.centerton.centerton.domain.preconsultationsubmission.entity.enums.SymptomCategory;
+
+import java.time.OffsetDateTime;
+
 public record AppointmentLookupRes(
-        boolean hasAppointment,
-        AppointmentDetailRes appointment
+        Long appointmentId,
+        Long caseId,
+        Long slotId,
+        OffsetDateTime startsAt,
+        OffsetDateTime endsAt,
+        SymptomCategory symptomCategory,
+        String symptomNote,
+        AppointmentStatus status,
+        OffsetDateTime waitingRoomOpensAt,
+        OffsetDateTime waitingRoomClosesAt,
+        boolean canEnterWaitingRoom,
+        String timezoneId
 ) {
-
-    public static AppointmentLookupRes none() {
-        return new AppointmentLookupRes(false, null);
-    }
-
-    public static AppointmentLookupRes of(AppointmentDetailRes appointment) {
-        return new AppointmentLookupRes(true, appointment);
-    }
 }

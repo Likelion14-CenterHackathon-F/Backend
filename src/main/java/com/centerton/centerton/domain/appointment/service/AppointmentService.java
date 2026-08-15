@@ -18,6 +18,8 @@ import com.centerton.centerton.domain.appointment.repository.ReservationSlotRepo
 import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
 import com.centerton.centerton.domain.patient.exception.PatientErrorCode;
 import com.centerton.centerton.domain.patient.repository.PatientRepository;
+import com.centerton.centerton.domain.preconsultationsubmission.entity.PreconsultSubmission;
+import com.centerton.centerton.domain.preconsultationsubmission.repository.PreconsultSubmissionRepository;
 import com.centerton.centerton.domain.preconsultationsubmission.service.PreconsultSubmissionService;
 import com.centerton.centerton.global.exception.BaseException;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -49,9 +53,10 @@ public class AppointmentService {
     private final ConsultationSessionRepository consultationSessionRepository;
     private final AppointmentReservationTransactionService reservationTransactionService;
     private final PreconsultSubmissionService preconsultSubmissionService;
+    private final PreconsultSubmissionRepository submissionRepository;
 
     @Transactional(readOnly = true)
-    public AppointmentLookupRes getAppointment(
+    public List<AppointmentLookupRes> getAppointments(
             Long patientId,
             Long caseId
     ) {
@@ -69,15 +74,52 @@ public class AppointmentService {
                 );
 
         if (activeAppointments.isEmpty()) {
-            return AppointmentLookupRes.none();
+            return List.of();
         }
 
-        Appointment appointment = activeAppointments.getFirst();
-        ReservationSlot slot = getSlot(appointment.getSlotId());
+        Map<Long, ReservationSlot> slotsById = reservationSlotRepository
+                .findAllById(activeAppointments.stream()
+                        .map(Appointment::getSlotId)
+                        .distinct()
+                        .toList())
+                .stream()
+                .collect(Collectors.toMap(
+                        ReservationSlot::getSlotId,
+                        Function.identity()
+                ));
+        Map<Long, PreconsultSubmission> submissionsByAppointmentId =
+                findSubmissionsByAppointmentId(activeAppointments);
 
-        return AppointmentLookupRes.of(
-                toAppointmentDetail(appointment, slot, zoneId, nowUtc)
-        );
+        return activeAppointments.stream()
+                .map(appointment -> toAppointmentLookup(
+                        appointment,
+                        requireSlot(
+                                appointment.getSlotId(),
+                                slotsById
+                        ),
+                        submissionsByAppointmentId.get(
+                                appointment.getAppointmentId()
+                        ),
+                        zoneId,
+                        nowUtc
+                ))
+                .toList();
+    }
+
+    private Map<Long, PreconsultSubmission> findSubmissionsByAppointmentId(
+            List<Appointment> appointments
+    ) {
+        return submissionRepository
+                .findAllByAppointmentAppointmentIdIn(
+                        appointments.stream()
+                                .map(Appointment::getAppointmentId)
+                                .toList()
+                )
+                .stream()
+                .collect(Collectors.toMap(
+                        PreconsultSubmission::getAppointmentId,
+                        Function.identity()
+                ));
     }
 
     @Transactional(readOnly = true)
@@ -341,6 +383,19 @@ public class AppointmentService {
                 ));
     }
 
+    private ReservationSlot requireSlot(
+            Long slotId,
+            Map<Long, ReservationSlot> slotsById
+    ) {
+        ReservationSlot slot = slotsById.get(slotId);
+        if (slot == null) {
+            throw new BaseException(
+                    AppointmentErrorCode.RESERVATION_SLOT_NOT_FOUND
+            );
+        }
+        return slot;
+    }
+
     private ReservationSlot getSlotForUpdate(Long slotId) {
         return reservationSlotRepository.findByIdForUpdate(slotId)
                 .orElseThrow(() -> new BaseException(
@@ -468,6 +523,34 @@ public class AppointmentService {
                 AppointmentTimePolicy.canJoin(slot.getStartsAt(), nowUtc),
                 zoneId.getId(),
                 appointment.getStatus()
+        );
+    }
+
+    private AppointmentLookupRes toAppointmentLookup(
+            Appointment appointment,
+            ReservationSlot slot,
+            PreconsultSubmission submission,
+            ZoneId zoneId,
+            LocalDateTime nowUtc
+    ) {
+        LocalDateTime waitingRoomOpensAt =
+                AppointmentTimePolicy.waitingRoomOpensAt(slot.getStartsAt());
+        LocalDateTime waitingRoomClosesAt =
+                AppointmentTimePolicy.waitingRoomClosesAt(slot.getStartsAt());
+
+        return new AppointmentLookupRes(
+                appointment.getAppointmentId(),
+                appointment.getCaseId(),
+                appointment.getSlotId(),
+                toUserTime(slot.getStartsAt(), zoneId),
+                toUserTime(slot.getEndsAt(), zoneId),
+                submission == null ? null : submission.getSymptomCategory(),
+                submission == null ? null : submission.getSymptomNote(),
+                appointment.getStatus(),
+                toUserTime(waitingRoomOpensAt, zoneId),
+                toUserTime(waitingRoomClosesAt, zoneId),
+                AppointmentTimePolicy.canJoin(slot.getStartsAt(), nowUtc),
+                zoneId.getId()
         );
     }
 
