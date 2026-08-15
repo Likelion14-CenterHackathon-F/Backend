@@ -60,7 +60,7 @@ public class AppointmentReservationTransactionService {
                 .saveAndFlush(appointment);
         PreconsultSubmission submission = submissionRepository
                 .saveAndFlush(PreconsultSubmission.create(
-                        prepared.symptomCategory(),
+                        prepared.symptomCategories(),
                         prepared.symptomNote(),
                         savedAppointment
                 ));

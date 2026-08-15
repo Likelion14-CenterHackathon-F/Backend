@@ -26,6 +26,8 @@ public class AppointmentCreateReq {
 
     private SymptomCategory symptomCategory;
 
+    private List<SymptomCategory> symptomCategories = new ArrayList<>();
+
     private String symptomNote;
 
     private List<MultipartFile> files = new ArrayList<>();

@@ -384,6 +384,9 @@ public class ConsultationService {
                 slot == null ? null : slot.getStartsAt(),
                 slot == null ? null : slot.getEndsAt(),
                 submission == null ? null : submission.getSymptomCategory(),
+                submission == null
+                        ? List.of()
+                        : submission.getOrderedSymptomCategories(),
                 submission == null ? null : submission.getSymptomNote(),
                 status,
                 appointment.getCancelReason(),

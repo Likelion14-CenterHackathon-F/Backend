@@ -1,5 +1,7 @@
 package com.centerton.centerton.domain.appointment.service;
 
+import com.centerton.centerton.domain.aftercare.entity.AftercareCase;
+import com.centerton.centerton.domain.aftercare.repository.AftercareCaseRepository;
 import com.centerton.centerton.domain.appointment.dto.request.AppointmentCreateReq;
 import com.centerton.centerton.domain.appointment.entity.Appointment;
 import com.centerton.centerton.domain.appointment.entity.ReservationSlot;
@@ -27,6 +29,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -56,6 +59,9 @@ class AppointmentReservationTransactionServiceTest {
     private PatientRepository patientRepository;
 
     @Autowired
+    private AftercareCaseRepository aftercareCaseRepository;
+
+    @Autowired
     private PreconsultSubmissionRepository submissionRepository;
 
     @Autowired
@@ -68,6 +74,7 @@ class AppointmentReservationTransactionServiceTest {
         submissionRepository.deleteAll();
         appointmentRepository.deleteAll();
         slotRepository.deleteAll();
+        aftercareCaseRepository.deleteAll();
         patientRepository.deleteAll();
     }
 
@@ -80,6 +87,8 @@ class AppointmentReservationTransactionServiceTest {
     void onlyOneConcurrentReservationSucceedsForTheSameSlot() throws Exception {
         Patient firstPatient = savePatient("first@example.com");
         Patient secondPatient = savePatient("second@example.com");
+        Long firstCaseId = saveAftercareCase(firstPatient);
+        Long secondCaseId = saveAftercareCase(secondPatient);
         ReservationSlot slot = slotRepository.saveAndFlush(
                 ReservationSlot.create(
                         NOW.plusHours(2),
@@ -91,13 +100,13 @@ class AppointmentReservationTransactionServiceTest {
         Future<Boolean> first = executor.submit(() -> reserve(
                 start,
                 firstPatient.getId(),
-                101L,
+                firstCaseId,
                 slot.getSlotId()
         ));
         Future<Boolean> second = executor.submit(() -> reserve(
                 start,
                 secondPatient.getId(),
-                202L,
+                secondCaseId,
                 slot.getSlotId()
         ));
 
@@ -119,6 +128,8 @@ class AppointmentReservationTransactionServiceTest {
     void cancelledSlotCanBeReservedAgain() {
         Patient firstPatient = savePatient("first@example.com");
         Patient secondPatient = savePatient("second@example.com");
+        Long firstCaseId = saveAftercareCase(firstPatient);
+        Long secondCaseId = saveAftercareCase(secondPatient);
         ReservationSlot slot = slotRepository.saveAndFlush(
                 ReservationSlot.create(
                         NOW.plusHours(2),
@@ -129,7 +140,7 @@ class AppointmentReservationTransactionServiceTest {
         AppointmentReservationTransactionService.CreatedAppointment first =
                 service.createAppointment(
                         firstPatient.getId(),
-                        request(101L, slot.getSlotId()),
+                        request(firstCaseId, slot.getSlotId()),
                         preparedSubmission(),
                         NOW
                 );
@@ -150,7 +161,7 @@ class AppointmentReservationTransactionServiceTest {
         AppointmentReservationTransactionService.CreatedAppointment second =
                 service.createAppointment(
                         secondPatient.getId(),
-                        request(202L, slot.getSlotId()),
+                        request(secondCaseId, slot.getSlotId()),
                         preparedSubmission(),
                         NOW
                 );
@@ -175,6 +186,40 @@ class AppointmentReservationTransactionServiceTest {
                 slot.getSlotId(),
                 AppointmentStatus.CONFIRMED
         )).isTrue();
+    }
+
+    @Test
+    void multipleSymptomCategoriesAreStoredWithoutDuplicates() {
+        Patient patient = savePatient("multiple@example.com");
+        Long caseId = saveAftercareCase(patient);
+        ReservationSlot slot = slotRepository.saveAndFlush(
+                ReservationSlot.create(
+                        NOW.plusHours(2),
+                        NOW.plusHours(2).plusMinutes(30)
+                )
+        );
+
+        AppointmentReservationTransactionService.CreatedAppointment created =
+                service.createAppointment(
+                        patient.getId(),
+                        request(caseId, slot.getSlotId()),
+                        new PreconsultSubmissionService.PreparedPreconsultSubmission(
+                                Set.of(
+                                        SymptomCategory.BRUISING,
+                                        SymptomCategory.SWELLING
+                                ),
+                                "붓기와 멍",
+                                List.of()
+                        ),
+                        NOW
+                );
+
+        assertThat(submissionRepository.findByAppointmentAppointmentId(
+                created.appointment().getAppointmentId()
+        ).orElseThrow().getOrderedSymptomCategories()).containsExactly(
+                SymptomCategory.SWELLING,
+                SymptomCategory.BRUISING
+        );
     }
 
     private boolean reserve(
@@ -205,6 +250,12 @@ class AppointmentReservationTransactionServiceTest {
                 .build());
     }
 
+    private Long saveAftercareCase(Patient patient) {
+        return aftercareCaseRepository.saveAndFlush(
+                AftercareCase.create(patient, NOW.toLocalDate(), 14)
+        ).getCaseId();
+    }
+
     private AppointmentCreateReq request(Long caseId, Long slotId) {
         AppointmentCreateReq request = new AppointmentCreateReq();
         request.setCaseId(caseId);
@@ -216,7 +267,7 @@ class AppointmentReservationTransactionServiceTest {
     private PreconsultSubmissionService.PreparedPreconsultSubmission
     preparedSubmission() {
         return new PreconsultSubmissionService.PreparedPreconsultSubmission(
-                SymptomCategory.OTHER,
+                Set.of(SymptomCategory.OTHER),
                 null,
                 List.of()
         );

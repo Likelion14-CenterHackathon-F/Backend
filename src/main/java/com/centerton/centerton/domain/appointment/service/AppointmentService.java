@@ -4,6 +4,7 @@ import com.centerton.centerton.domain.appointment.dto.request.AppointmentChangeR
 import com.centerton.centerton.domain.appointment.dto.request.AppointmentCreateReq;
 import com.centerton.centerton.domain.appointment.dto.request.AppointmentCancelReq;
 import com.centerton.centerton.domain.appointment.dto.response.AppointmentDetailRes;
+import com.centerton.centerton.domain.appointment.dto.response.AppointmentInfoRes;
 import com.centerton.centerton.domain.appointment.dto.response.AppointmentLookupRes;
 import com.centerton.centerton.domain.appointment.dto.response.AvailableDateRes;
 import com.centerton.centerton.domain.appointment.dto.response.AvailableSlotListRes;
@@ -19,6 +20,7 @@ import com.centerton.centerton.domain.consultation.repository.ConsultationSessio
 import com.centerton.centerton.domain.patient.exception.PatientErrorCode;
 import com.centerton.centerton.domain.patient.repository.PatientRepository;
 import com.centerton.centerton.domain.preconsultationsubmission.entity.PreconsultSubmission;
+import com.centerton.centerton.domain.preconsultationsubmission.entity.enums.SymptomCategory;
 import com.centerton.centerton.domain.preconsultationsubmission.repository.PreconsultSubmissionRepository;
 import com.centerton.centerton.domain.preconsultationsubmission.service.PreconsultSubmissionService;
 import com.centerton.centerton.global.exception.BaseException;
@@ -33,6 +35,7 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,6 +107,34 @@ public class AppointmentService {
                         nowUtc
                 ))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public AppointmentInfoRes getAppointmentInfo(
+            Long patientId,
+            Long appointmentId
+    ) {
+        ensurePatientExists(patientId);
+
+        Appointment appointment = appointmentRepository
+                .findByAppointmentIdAndPatientId(appointmentId, patientId)
+                .orElseThrow(() -> new BaseException(
+                        AppointmentErrorCode.APPOINTMENT_NOT_FOUND
+                ));
+        ReservationSlot slot = getSlot(appointment.getSlotId());
+        PreconsultSubmission submission = submissionRepository
+                .findByAppointmentAppointmentId(appointmentId)
+                .orElse(null);
+
+        return new AppointmentInfoRes(
+                appointment.getAppointmentId(),
+                toUserTime(slot.getStartsAt(), UTC_ZONE_ID),
+                toUserTime(slot.getEndsAt(), UTC_ZONE_ID),
+                submission == null
+                        ? List.of()
+                        : submission.getOrderedSymptomCategories(),
+                submission == null ? null : submission.getSymptomNote()
+        );
     }
 
     private Map<Long, PreconsultSubmission> findSubmissionsByAppointmentId(
@@ -238,7 +269,7 @@ public class AppointmentService {
     ) {
         PreconsultSubmissionService.PreparedPreconsultSubmission prepared =
                 preconsultSubmissionService.prepareSubmission(
-                        request.getSymptomCategory(),
+                        normalizeSymptomCategories(request),
                         request.getSymptomNote(),
                         request.getFiles()
                 );
@@ -545,6 +576,9 @@ public class AppointmentService {
                 toUserTime(slot.getStartsAt(), zoneId),
                 toUserTime(slot.getEndsAt(), zoneId),
                 submission == null ? null : submission.getSymptomCategory(),
+                submission == null
+                        ? List.of()
+                        : submission.getOrderedSymptomCategories(),
                 submission == null ? null : submission.getSymptomNote(),
                 appointment.getStatus(),
                 toUserTime(waitingRoomOpensAt, zoneId),
@@ -558,6 +592,24 @@ public class AppointmentService {
         if (!patientRepository.existsById(patientId)) {
             throw new BaseException(PatientErrorCode.PATIENT_NOT_FOUND);
         }
+    }
+
+    private Set<SymptomCategory> normalizeSymptomCategories(
+            AppointmentCreateReq request
+    ) {
+        EnumSet<SymptomCategory> symptomCategories =
+                EnumSet.noneOf(SymptomCategory.class);
+
+        if (request.getSymptomCategory() != null) {
+            symptomCategories.add(request.getSymptomCategory());
+        }
+        if (request.getSymptomCategories() != null) {
+            request.getSymptomCategories().stream()
+                    .filter(java.util.Objects::nonNull)
+                    .forEach(symptomCategories::add);
+        }
+
+        return symptomCategories;
     }
 
     private OffsetDateTime toUserTime(

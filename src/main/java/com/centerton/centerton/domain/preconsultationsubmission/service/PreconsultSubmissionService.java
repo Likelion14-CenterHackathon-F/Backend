@@ -21,7 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -39,14 +42,16 @@ public class PreconsultSubmissionService {
     private final PreconsultFileValidator fileValidator;
 
     public PreparedPreconsultSubmission prepareSubmission(
-            SymptomCategory symptomCategory,
+            Set<SymptomCategory> requestedSymptomCategories,
             String requestedSymptomNote,
             List<MultipartFile> requestedFiles
     ) {
+        Set<SymptomCategory> symptomCategories =
+                immutableSymptomCategories(requestedSymptomCategories);
         String symptomNote = normalizeSymptomNote(requestedSymptomNote);
         List<MultipartFile> files = resolveFiles(requestedFiles);
 
-        validateSubmissionContent(symptomCategory, symptomNote, files);
+        validateSubmissionContent(symptomCategories, symptomNote, files);
 
         List<StoredPreconsultFile> storedFiles = new ArrayList<>(files.size());
 
@@ -56,7 +61,7 @@ public class PreconsultSubmissionService {
             }
 
             return new PreparedPreconsultSubmission(
-                    symptomCategory,
+                    symptomCategories,
                     symptomNote,
                     List.copyOf(storedFiles)
             );
@@ -161,15 +166,30 @@ public class PreconsultSubmissionService {
     }
 
     private void validateSubmissionContent(
-            SymptomCategory symptomCategory,
+            Set<SymptomCategory> symptomCategories,
             String symptomNote,
             List<MultipartFile> files
     ) {
-        if (symptomCategory == null && symptomNote == null && files.isEmpty()) {
+        if (symptomCategories.isEmpty()
+                && symptomNote == null
+                && files.isEmpty()) {
             throw new BaseException(
                     PreconsultSubmissionErrorCode.SUBMISSION_CONTENT_REQUIRED
             );
         }
+    }
+
+    private static Set<SymptomCategory> immutableSymptomCategories(
+            Set<SymptomCategory> symptomCategories
+    ) {
+        EnumSet<SymptomCategory> copy =
+                EnumSet.noneOf(SymptomCategory.class);
+        if (symptomCategories != null) {
+            symptomCategories.stream()
+                    .filter(java.util.Objects::nonNull)
+                    .forEach(copy::add);
+        }
+        return Collections.unmodifiableSet(copy);
     }
 
     private void deleteStoredFilesQuietly(
@@ -199,9 +219,13 @@ public class PreconsultSubmissionService {
     }
 
     public record PreparedPreconsultSubmission(
-            SymptomCategory symptomCategory,
+            Set<SymptomCategory> symptomCategories,
             String symptomNote,
             List<StoredPreconsultFile> storedFiles
     ) {
+        public PreparedPreconsultSubmission {
+            symptomCategories = immutableSymptomCategories(symptomCategories);
+            storedFiles = List.copyOf(storedFiles);
+        }
     }
 }
