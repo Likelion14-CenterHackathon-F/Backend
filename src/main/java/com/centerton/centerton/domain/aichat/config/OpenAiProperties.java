@@ -11,6 +11,6 @@ public class OpenAiProperties {
 
     private String apiKey;
     private String baseUrl = "https://api.openai.com";
-    private String model = "gpt-5.6-terra";
+    private String model = "gpt-5.6-luna";
     private int maxOutputTokens = 900;
 }

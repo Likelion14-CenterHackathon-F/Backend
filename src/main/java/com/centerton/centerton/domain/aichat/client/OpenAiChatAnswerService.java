@@ -8,6 +8,7 @@ import com.centerton.centerton.domain.aichat.service.AiChatAnswerRequest;
 import com.centerton.centerton.domain.aichat.service.AiChatAnswerService;
 import com.centerton.centerton.global.exception.BaseException;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,12 @@ import java.util.List;
 import java.util.Map;
 
 @Component
+@ConditionalOnProperty(
+        prefix = "ai-chat.answer",
+        name = "provider",
+        havingValue = "openai",
+        matchIfMissing = true
+)
 public class OpenAiChatAnswerService implements AiChatAnswerService {
 
     private static final int MAX_HISTORY_MESSAGES = 10;
@@ -225,4 +232,5 @@ public class OpenAiChatAnswerService implements AiChatAnswerService {
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
+
 }
