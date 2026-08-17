@@ -23,7 +23,9 @@ public enum AiChatErrorCode implements BaseResponseCode {
     IMAGE_STORAGE_FAILED("AI_CHAT_500_1", INTERNAL_SERVER_ERROR, "첨부 이미지 저장에 실패했습니다. 잠시 후 다시 시도해주세요."),
     OPENAI_CONFIGURATION_MISSING("AI_CHAT_500_2", INTERNAL_SERVER_ERROR, "OpenAI API 설정이 누락되었습니다."),
     OPENAI_RESPONSE_FAILED("AI_CHAT_500_3", INTERNAL_SERVER_ERROR, "현재 AI 통신이 불안정합니다. 잠시 후 다시 시도해주세요."),
-    TRANSLATION_FAILED("AI_CHAT_500_4", INTERNAL_SERVER_ERROR, "AI 채팅 응답 번역에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    TRANSLATION_FAILED("AI_CHAT_500_4", INTERNAL_SERVER_ERROR, "AI 채팅 응답 번역에 실패했습니다. 잠시 후 다시 시도해주세요."),
+    RAG_SERVICE_CONFIGURATION_MISSING("AI_CHAT_500_5", INTERNAL_SERVER_ERROR, "RAG 서비스 설정이 누락되었습니다."),
+    RAG_SERVICE_RESPONSE_FAILED("AI_CHAT_500_6", INTERNAL_SERVER_ERROR, "현재 RAG 응답 서비스가 불안정합니다. 잠시 후 다시 시도해주세요.");
 
     private final String code;
     private final int httpStatus;

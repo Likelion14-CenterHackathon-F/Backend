@@ -7,6 +7,8 @@ import com.centerton.centerton.domain.aichat.dto.response.AiChatRoomMessagesRes;
 import com.centerton.centerton.domain.aichat.dto.response.AiChatSymptomInquiryRes;
 import com.centerton.centerton.domain.aichat.entity.AiChatMessage;
 import com.centerton.centerton.domain.aichat.exception.AiChatErrorCode;
+import com.centerton.centerton.domain.aichat.safety.AiChatEmergencyRuleService;
+import com.centerton.centerton.domain.aichat.safety.EmergencyRuleMatch;
 import com.centerton.centerton.domain.aichat.storage.AiChatImageStorage;
 import com.centerton.centerton.domain.aichat.storage.StoredAiChatImage;
 import com.centerton.centerton.domain.patient.entity.enums.Language;
@@ -19,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -32,6 +35,7 @@ public class AiChatService {
     private final AiChatTransactionService transactionService;
     private final AiChatQueryService queryService;
     private final AiChatResponseTranslator responseTranslator;
+    private final AiChatEmergencyRuleService emergencyRuleService;
 
     public AiChatSymptomInquiryRes createSymptomInquiry(
             Long patientId,
@@ -58,11 +62,11 @@ public class AiChatService {
             userMessageSaved = true;
 
             String analysisImageUrl = resolveAnalysisImageUrl(storedImage);
-            String answer = answerService.generateAnswer(new AiChatAnswerRequest(
+            String answer = createAnswer(
                     question,
                     analysisImageUrl,
                     savedUserMessage.previousMessages()
-            ));
+            );
 
             AiChatMessage assistantMessage = transactionService.saveAssistantMessage(
                     patientId,
@@ -85,6 +89,31 @@ public class AiChatService {
             }
             throw exception;
         }
+    }
+
+    private String createAnswer(
+            String question,
+            String analysisImageUrl,
+            List<AiChatAnswerMessage> previousMessages
+    ) {
+        Optional<EmergencyRuleMatch> emergencyRuleMatch =
+                emergencyRuleService.findMatch(question);
+
+        if (emergencyRuleMatch.isPresent()) {
+            EmergencyRuleMatch match = emergencyRuleMatch.get();
+            log.warn(
+                    "AI 채팅 응급 하드스톱 룰 매칭. ruleIds={}, signals={}",
+                    match.ruleIds(),
+                    match.matchedSignals()
+            );
+            return match.frontendMessage();
+        }
+
+        return answerService.generateAnswer(new AiChatAnswerRequest(
+                question,
+                analysisImageUrl,
+                previousMessages
+        ));
     }
 
     public List<AiChatRoomListRes> getChatRooms(

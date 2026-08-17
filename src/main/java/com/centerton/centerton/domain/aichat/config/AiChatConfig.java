@@ -6,7 +6,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
 
 @Configuration
-@EnableConfigurationProperties(OpenAiProperties.class)
+@EnableConfigurationProperties({
+        OpenAiProperties.class,
+        AiChatAnswerProperties.class,
+        AiRagServiceProperties.class,
+        AiChatEmergencyRuleProperties.class
+})
 public class AiChatConfig {
 
     @Bean

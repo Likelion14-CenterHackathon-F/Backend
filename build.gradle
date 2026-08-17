@@ -50,6 +50,26 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+tasks.named('bootJar') {
+    // application-secret.properties 는 src/main/resources 에 있어 processResources 가
+    // 클래스패스에 넣는다. bootRun 은 그 디렉터리를 읽으므로 로컬 개발에는 그대로 필요하지만,
+    // 배포 jar 에 들어가면 이미지를 받은 누구나 unzip 으로 DB 비밀번호와 API 키를 읽을 수 있다.
+    // spring.config.import 가 optional 이므로 파일이 없어도 기동한다. 배포 환경은 환경변수를 쓴다.
+    exclude 'application-secret.properties'
+    exclude 'application-secret.properties.example'
+}
+
 tasks.named('test') {
     useJUnitPlatform()
+
+    // 응급 룰 회귀 테스트는 Rag-Lab 룰북을 직접 읽는다. Gradle 은 -D 프로퍼티를
+    // 테스트 JVM 으로 자동 전달하지 않으므로 명시적으로 넘긴다.
+    //   ./gradlew test -Drag.rulebook.root=/path/to/Rag-Lab/rag_rulebook
+    // 컨테이너에서는 RAG_RULEBOOK_ROOT 환경변수를 사용한다.
+    def rulebookRoot = System.getProperty('rag.rulebook.root')
+            ?: findProperty('rag.rulebook.root')
+            ?: System.getenv('RAG_RULEBOOK_ROOT')
+    if (rulebookRoot) {
+        systemProperty 'rag.rulebook.root', rulebookRoot
+    }
 }
