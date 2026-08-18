@@ -22,6 +22,7 @@ import com.centerton.centerton.domain.consultation.repository.TranscriptSegmentR
 import com.centerton.centerton.domain.preconsultationsubmission.entity.PreconsultSubmission;
 import com.centerton.centerton.domain.preconsultationsubmission.repository.PreconsultSubmissionRepository;
 import com.centerton.centerton.global.exception.BaseException;
+import com.centerton.centerton.global.util.UtcDateTimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -375,14 +376,22 @@ public class ConsultationService {
         return new ConsultationHistoryRes(
                 appointment.getAppointmentId(),
                 session == null ? null : session.getSessionId(),
-                session == null ? null : session.getStartedAt(),
-                session == null ? null : session.getEndedAt(),
+                session == null
+                        ? null
+                        : UtcDateTimeUtils.toUtcOffset(session.getStartedAt()),
+                session == null
+                        ? null
+                        : UtcDateTimeUtils.toUtcOffset(session.getEndedAt()),
                 session == null ? null : session.getActualDurationSeconds(),
                 session != null && sessionIdsWithTranscript.contains(
                         session.getSessionId()
                 ),
-                slot == null ? null : slot.getStartsAt(),
-                slot == null ? null : slot.getEndsAt(),
+                slot == null
+                        ? null
+                        : UtcDateTimeUtils.toUtcOffset(slot.getStartsAt()),
+                slot == null
+                        ? null
+                        : UtcDateTimeUtils.toUtcOffset(slot.getEndsAt()),
                 submission == null ? null : submission.getSymptomCategory(),
                 submission == null
                         ? List.of()
@@ -390,7 +399,7 @@ public class ConsultationService {
                 submission == null ? null : submission.getSymptomNote(),
                 status,
                 appointment.getCancelReason(),
-                appointment.getCancelledAt()
+                UtcDateTimeUtils.toUtcOffset(appointment.getCancelledAt())
         );
     }
 
@@ -421,8 +430,8 @@ public class ConsultationService {
         return new ConsultationEndRes(
                 session.getSessionId(),
                 session.getSessionStatus(),
-                session.getStartedAt(),
-                session.getEndedAt(),
+                UtcDateTimeUtils.toUtcOffset(session.getStartedAt()),
+                UtcDateTimeUtils.toUtcOffset(session.getEndedAt()),
                 session.getActualDurationSeconds()
         );
     }
