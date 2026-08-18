@@ -1,15 +1,16 @@
 package com.centerton.centerton.domain.patient.web.dto;
 
 import com.centerton.centerton.domain.patient.entity.PatientAccessLink;
+import com.centerton.centerton.global.util.UtcDateTimeUtils;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public record PatientAccessLinkCreateRes(
         Long accessLinkId,
         Long patientId,
         String token,
         String magicLink,
-        LocalDateTime expiresAt
+        OffsetDateTime expiresAt
 ) {
     public static PatientAccessLinkCreateRes of(
             PatientAccessLink accessLink,
@@ -21,7 +22,7 @@ public record PatientAccessLinkCreateRes(
                 accessLink.getPatient().getId(),
                 token,
                 magicLink,
-                accessLink.getExpiresAt()
+                UtcDateTimeUtils.toUtcOffset(accessLink.getExpiresAt())
         );
     }
 }
