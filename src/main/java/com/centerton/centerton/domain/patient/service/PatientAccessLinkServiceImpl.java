@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -46,6 +47,7 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
     private final PatientRepository patientRepository;
     private final PatientAccessLinkRepository patientAccessLinkRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final Clock utcClock;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${patient.access-link.base-url:https://allway.vercel.app/patient/access}")
@@ -58,7 +60,8 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
                 .orElseThrow(PatientNotFoundException::new);
 
         int expiresInMinutes = resolveExpiresInMinutes(request);
-        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(expiresInMinutes);
+        LocalDateTime expiresAt = LocalDateTime.now(utcClock)
+                .plusMinutes(expiresInMinutes);
         GeneratedToken generatedToken = generateUniqueToken();
 
         PatientAccessLink accessLink = patientAccessLinkRepository.save(
@@ -78,7 +81,7 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
         PatientAccessLink accessLink = patientAccessLinkRepository.findByTokenHash(tokenHash)
                 .orElseThrow(PatientAccessLinkInvalidException::new);
 
-        if (accessLink.isExpired(LocalDateTime.now())) {
+        if (accessLink.isExpired(LocalDateTime.now(utcClock))) {
             throw new PatientAccessLinkExpiredException();
         }
 

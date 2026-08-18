@@ -24,13 +24,13 @@ import com.centerton.centerton.domain.preconsultationsubmission.entity.enums.Sym
 import com.centerton.centerton.domain.preconsultationsubmission.repository.PreconsultSubmissionRepository;
 import com.centerton.centerton.domain.preconsultationsubmission.service.PreconsultSubmissionService;
 import com.centerton.centerton.global.exception.BaseException;
+import com.centerton.centerton.global.util.UtcDateTimeUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -128,8 +128,8 @@ public class AppointmentService {
 
         return new AppointmentInfoRes(
                 appointment.getAppointmentId(),
-                toUserTime(slot.getStartsAt(), UTC_ZONE_ID),
-                toUserTime(slot.getEndsAt(), UTC_ZONE_ID),
+                UtcDateTimeUtils.toUtcOffset(slot.getStartsAt()),
+                UtcDateTimeUtils.toUtcOffset(slot.getEndsAt()),
                 submission == null
                         ? List.of()
                         : submission.getOrderedSymptomCategories(),
@@ -193,7 +193,9 @@ public class AppointmentService {
                 continue;
             }
 
-            LocalDate localDate = toUserTime(slot.getStartsAt(), zoneId).toLocalDate();
+            LocalDate localDate = UtcDateTimeUtils
+                    .toUtcOffset(slot.getStartsAt())
+                    .toLocalDate();
 
             if (localDate.isBefore(today)) {
                 continue;
@@ -249,8 +251,8 @@ public class AppointmentService {
 
             responses.add(new AvailableSlotRes(
                     slot.getSlotId(),
-                    toUserTime(slot.getStartsAt(), zoneId),
-                    toUserTime(slot.getEndsAt(), zoneId),
+                    UtcDateTimeUtils.toUtcOffset(slot.getStartsAt()),
+                    UtcDateTimeUtils.toUtcOffset(slot.getEndsAt()),
                     available
             ));
         }
@@ -547,10 +549,10 @@ public class AppointmentService {
                 appointment.getAppointmentId(),
                 appointment.getCaseId(),
                 appointment.getSlotId(),
-                toUserTime(slot.getStartsAt(), zoneId),
-                toUserTime(slot.getEndsAt(), zoneId),
-                toUserTime(waitingRoomOpensAt, zoneId),
-                toUserTime(waitingRoomClosesAt, zoneId),
+                UtcDateTimeUtils.toUtcOffset(slot.getStartsAt()),
+                UtcDateTimeUtils.toUtcOffset(slot.getEndsAt()),
+                UtcDateTimeUtils.toUtcOffset(waitingRoomOpensAt),
+                UtcDateTimeUtils.toUtcOffset(waitingRoomClosesAt),
                 AppointmentTimePolicy.canJoin(slot.getStartsAt(), nowUtc),
                 zoneId.getId(),
                 appointment.getStatus()
@@ -573,16 +575,16 @@ public class AppointmentService {
                 appointment.getAppointmentId(),
                 appointment.getCaseId(),
                 appointment.getSlotId(),
-                toUserTime(slot.getStartsAt(), zoneId),
-                toUserTime(slot.getEndsAt(), zoneId),
+                UtcDateTimeUtils.toUtcOffset(slot.getStartsAt()),
+                UtcDateTimeUtils.toUtcOffset(slot.getEndsAt()),
                 submission == null ? null : submission.getSymptomCategory(),
                 submission == null
                         ? List.of()
                         : submission.getOrderedSymptomCategories(),
                 submission == null ? null : submission.getSymptomNote(),
                 appointment.getStatus(),
-                toUserTime(waitingRoomOpensAt, zoneId),
-                toUserTime(waitingRoomClosesAt, zoneId),
+                UtcDateTimeUtils.toUtcOffset(waitingRoomOpensAt),
+                UtcDateTimeUtils.toUtcOffset(waitingRoomClosesAt),
                 AppointmentTimePolicy.canJoin(slot.getStartsAt(), nowUtc),
                 zoneId.getId()
         );
@@ -610,16 +612,6 @@ public class AppointmentService {
         }
 
         return symptomCategories;
-    }
-
-    private OffsetDateTime toUserTime(
-            LocalDateTime utcDateTime,
-            ZoneId zoneId
-    ) {
-        return utcDateTime
-                .atZone(ZoneOffset.UTC)
-                .withZoneSameInstant(zoneId)
-                .toOffsetDateTime();
     }
 
     private LocalDateTime toUtc(

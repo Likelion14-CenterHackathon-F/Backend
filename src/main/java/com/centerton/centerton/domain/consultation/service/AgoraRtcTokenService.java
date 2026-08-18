@@ -3,6 +3,7 @@ package com.centerton.centerton.domain.consultation.service;
 import com.centerton.centerton.domain.consultation.config.AgoraProperties;
 import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCode;
 import com.centerton.centerton.global.exception.BaseException;
+import com.centerton.centerton.global.util.UtcDateTimeUtils;
 import io.agora.media.RtcTokenBuilder2;
 import org.springframework.stereotype.Service;
 
@@ -44,7 +45,9 @@ public class AgoraRtcTokenService {
 
         return new IssuedRtcToken(
                 token,
-                Instant.now().plusSeconds(expirationSeconds)
+                UtcDateTimeUtils.truncateToSeconds(
+                        Instant.now().plusSeconds(expirationSeconds)
+                )
         );
     }
 

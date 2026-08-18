@@ -3,7 +3,7 @@ package com.centerton.centerton.domain.consultation.dto.response;
 import com.centerton.centerton.domain.consultation.entity.enums.ParticipantRole;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public record CaptionRes(
         Long transcriptSegmentId,
@@ -18,6 +18,6 @@ public record CaptionRes(
         @JsonProperty("isFinal") boolean finalResult,
         Long textTimestamp,
         Integer durationMs,
-        LocalDateTime createdAt
+        OffsetDateTime createdAt
 ) {
 }

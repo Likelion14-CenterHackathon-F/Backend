@@ -3,6 +3,7 @@ package com.centerton.centerton.domain.preconsultationsubmission.storage;
 import com.centerton.centerton.domain.preconsultationsubmission.exception.PreconsultSubmissionErrorCode;
 import com.centerton.centerton.global.exception.BaseException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -17,6 +18,12 @@ import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 @Component
+@ConditionalOnProperty(
+        prefix = "app.storage",
+        name = "provider",
+        havingValue = "local",
+        matchIfMissing = true
+)
 public class LocalPreconsultFileStorage implements PreconsultFileStorage {
 
     private final Path storageDirectory;

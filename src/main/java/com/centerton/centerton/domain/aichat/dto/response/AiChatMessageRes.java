@@ -2,15 +2,16 @@ package com.centerton.centerton.domain.aichat.dto.response;
 
 import com.centerton.centerton.domain.aichat.entity.AiChatMessage;
 import com.centerton.centerton.domain.aichat.entity.enums.ChatMessageRole;
+import com.centerton.centerton.global.util.UtcDateTimeUtils;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public record AiChatMessageRes(
         Long messageId,
         ChatMessageRole role,
         String content,
         String imageUrl,
-        LocalDateTime sentAt
+        OffsetDateTime sentAt
 ) {
 
     public static AiChatMessageRes from(AiChatMessage message) {
@@ -19,7 +20,7 @@ public record AiChatMessageRes(
                 message.getRole(),
                 message.getContent(),
                 message.getImageUrl(),
-                message.getSentAt()
+                UtcDateTimeUtils.toUtcOffset(message.getSentAt())
         );
     }
 }

@@ -4,23 +4,23 @@ import com.centerton.centerton.domain.appointment.entity.enums.AppointmentCancel
 import com.centerton.centerton.domain.appointment.entity.enums.AppointmentStatus;
 import com.centerton.centerton.domain.preconsultationsubmission.entity.enums.SymptomCategory;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 public record ConsultationHistoryRes(
         Long appointmentId,
         Long sessionId,
-        LocalDateTime startedAt,
-        LocalDateTime endedAt,
+        OffsetDateTime startedAt,
+        OffsetDateTime endedAt,
         Integer actualDurationSeconds,
         boolean hasTranscript,
-        LocalDateTime appointmentStartsAt,
-        LocalDateTime appointmentEndsAt,
+        OffsetDateTime appointmentStartsAt,
+        OffsetDateTime appointmentEndsAt,
         SymptomCategory symptomCategory,
         List<SymptomCategory> symptomCategories,
         String symptomNote,
         AppointmentStatus status,
         AppointmentCancelReason cancelReason,
-        LocalDateTime cancelledAt
+        OffsetDateTime cancelledAt
 ) {
 }

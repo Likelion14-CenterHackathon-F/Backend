@@ -12,6 +12,7 @@ import com.centerton.centerton.domain.consultation.exception.ConsultationErrorCo
 import com.centerton.centerton.domain.consultation.repository.ConsultationSessionRepository;
 import com.centerton.centerton.domain.consultation.repository.TranscriptSegmentRepository;
 import com.centerton.centerton.global.exception.BaseException;
+import com.centerton.centerton.global.util.UtcDateTimeUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -150,7 +151,7 @@ public class CaptionService {
                 Boolean.TRUE.equals(segment.getFinalResult()),
                 segment.getTextTimestamp(),
                 segment.getDurationMs(),
-                segment.getCreatedAt()
+                UtcDateTimeUtils.toUtcOffset(segment.getCreatedAt())
         );
     }
 

@@ -3,6 +3,7 @@ package com.centerton.centerton.domain.aichat.storage;
 import com.centerton.centerton.domain.aichat.exception.AiChatErrorCode;
 import com.centerton.centerton.global.exception.BaseException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -18,9 +19,13 @@ import java.util.Base64;
 import java.util.UUID;
 
 @Component
+@ConditionalOnProperty(
+        prefix = "app.storage",
+        name = "provider",
+        havingValue = "local",
+        matchIfMissing = true
+)
 public class LocalAiChatImageStorage implements AiChatImageStorage {
-
-    public static final String IMAGE_URL_PREFIX = "/api/ai-chats/images/";
 
     private final Path storageDirectory;
     private final AiChatImageValidator imageValidator;

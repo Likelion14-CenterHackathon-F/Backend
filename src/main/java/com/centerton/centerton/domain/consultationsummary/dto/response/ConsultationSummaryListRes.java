@@ -1,10 +1,10 @@
 package com.centerton.centerton.domain.consultationsummary.dto.response;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public record ConsultationSummaryListRes(
         Long summaryId,
-        LocalDateTime consultedAt,
+        OffsetDateTime consultedAt,
         String medicalStaffName,
         Integer actualDurationSeconds,
         String language,

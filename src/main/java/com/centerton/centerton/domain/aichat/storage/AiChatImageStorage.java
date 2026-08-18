@@ -5,6 +5,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface AiChatImageStorage {
 
+    String IMAGE_URL_PREFIX = "/api/ai-chats/images/";
+
     StoredAiChatImage store(MultipartFile image);
 
     Resource load(String storedFileName);
