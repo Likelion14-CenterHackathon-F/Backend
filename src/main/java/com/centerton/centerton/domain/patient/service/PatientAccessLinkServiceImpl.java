@@ -48,7 +48,7 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
     private final JwtTokenProvider jwtTokenProvider;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    @Value("${patient.access-link.base-url:http://localhost:8080/patient/access}")
+    @Value("${patient.access-link.base-url:https://allway.vercel.app/patient/access}")
     private String patientAccessLinkBaseUrl;
 
     @Override
