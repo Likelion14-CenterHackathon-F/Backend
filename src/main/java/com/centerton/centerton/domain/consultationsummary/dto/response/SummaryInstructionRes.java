@@ -1,15 +1,16 @@
 package com.centerton.centerton.domain.consultationsummary.dto.response;
 
 import com.centerton.centerton.domain.consultationsummary.entity.SummaryInstruction;
+import com.centerton.centerton.global.util.UtcDateTimeUtils;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public record SummaryInstructionRes(
         Long instructionId,
         String content,
         Integer sortOrder,
         Boolean patientCompleted,
-        LocalDateTime completedAt
+        OffsetDateTime completedAt
 ) {
 
     public static SummaryInstructionRes from(SummaryInstruction instruction) {
@@ -18,7 +19,7 @@ public record SummaryInstructionRes(
                 instruction.getContent(),
                 instruction.getSortOrder(),
                 instruction.getPatientCompleted(),
-                instruction.getCompletedAt()
+                UtcDateTimeUtils.toUtcOffset(instruction.getCompletedAt())
         );
     }
 
@@ -31,7 +32,7 @@ public record SummaryInstructionRes(
                 translatedContent,
                 instruction.getSortOrder(),
                 instruction.getPatientCompleted(),
-                instruction.getCompletedAt()
+                UtcDateTimeUtils.toUtcOffset(instruction.getCompletedAt())
         );
     }
 }

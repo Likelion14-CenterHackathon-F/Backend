@@ -18,6 +18,7 @@ import com.centerton.centerton.global.exception.BaseException;
 import com.centerton.centerton.global.translation.DeepLConfigurationException;
 import com.centerton.centerton.global.translation.DeepLTranslationClient;
 import com.centerton.centerton.global.translation.DeepLTranslationException;
+import com.centerton.centerton.global.util.UtcDateTimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -234,7 +235,9 @@ public class ConsultationSummaryService {
             responses.add(
                     new ConsultationSummaryListRes(
                             summary.getSummaryId(),
-                            summary.getConsultedAt(),
+                            UtcDateTimeUtils.toUtcOffset(
+                                    summary.getConsultedAt()
+                            ),
                             summary.getMedicalStaffName(),
                             session.getActualDurationSeconds(),
                             language.getResponseCode(),
@@ -322,7 +325,7 @@ public class ConsultationSummaryService {
 
         return new ConsultationSummaryDetailRes(
                 summary.getSummaryId(),
-                summary.getConsultedAt(),
+                UtcDateTimeUtils.toUtcOffset(summary.getConsultedAt()),
                 summary.getMedicalStaffName(),
                 session.getActualDurationSeconds(),
                 language.getResponseCode(),
