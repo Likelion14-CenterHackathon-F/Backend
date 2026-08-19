@@ -1,0 +1,72 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: centerton-db
+    environment:
+      POSTGRES_DB: centerton
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - centerton-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d centerton"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    image: ${BACKEND_IMAGE:-commatack/likelion}:latest
+    container_name: likelion
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/centerton
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      AI_CHAT_RAG_SERVICE_BASE_URL: http://centerton-rag:8001
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70"
+    volumes:
+      - uploads-chat-images:/app/uploads/ai-chat-images
+      - uploads-preconsult:/app/uploads/preconsult-submissions
+    ports:
+      - "8080:8080"
+    networks:
+      - centerton-net
+    restart: unless-stopped
+    mem_limit: 1300m
+
+  centerton-rag:
+    image: ${RAG_IMAGE:-commatack/centerton-rag}:latest
+    container_name: centerton-rag
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${DATABASE_PASSWORD}@postgres:5432/centerton
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OMP_NUM_THREADS: "2"
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    networks:
+      - centerton-net
+    restart: unless-stopped
+    mem_limit: 2g
+
+volumes:
+  postgres-data:
+  uploads-chat-images:
+  uploads-preconsult:
+  hf-cache:
+
+networks:
+  centerton-net:
+    driver: bridge
