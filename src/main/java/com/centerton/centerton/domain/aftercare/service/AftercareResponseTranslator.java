@@ -26,15 +26,16 @@ public class AftercareResponseTranslator {
     ) {
         AftercareHomeRes.ProcedureSummary procedure = response.procedure();
         List<String> translatedTexts = translateTexts(
-                List.of(procedure.procedureName()),
+                List.of(response.patientName(), procedure.procedureName()),
                 language
         );
 
         return new AftercareHomeRes(
                 response.caseId(),
+                translatedTexts.get(0),
                 response.aftercareProgress(),
                 new AftercareHomeRes.ProcedureSummary(
-                        translatedTexts.getFirst(),
+                        translatedTexts.get(1),
                         procedure.procedureDate()
                 ),
                 response.consultationAppointment()
