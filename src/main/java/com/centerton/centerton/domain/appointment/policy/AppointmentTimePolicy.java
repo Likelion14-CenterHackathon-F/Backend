@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 public final class AppointmentTimePolicy {
 
-    public static final int RESERVATION_DEADLINE_BEFORE_MINUTES = 60;
+    public static final int RESERVATION_DEADLINE_BEFORE_MINUTES = 5;
     public static final int WAITING_ROOM_OPEN_BEFORE_MINUTES = 10;
     public static final int WAITING_ROOM_CLOSE_AFTER_MINUTES = 20;
 
