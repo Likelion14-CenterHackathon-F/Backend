@@ -3,14 +3,19 @@ package com.centerton.centerton.domain.consultationsummary.client;
 import com.centerton.centerton.domain.consultationsummary.config.GeminiProperties;
 import com.centerton.centerton.domain.consultationsummary.exception.ConsultationSummaryErrorCode;
 import com.centerton.centerton.global.exception.BaseException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 public class GeminiClient {
 
@@ -29,10 +34,16 @@ public class GeminiClient {
         validateConfiguration();
 
         GeminiGenerateRequest request = new GeminiGenerateRequest(
-                List.of(new GeminiContent(List.of(new GeminiPart(prompt)))),
+                List.of(
+                        new GeminiContent(
+                                List.of(
+                                        new GeminiPart(prompt)
+                                )
+                        )
+                ),
                 new GeminiGenerationConfig(
                         0.2,
-                        2048,
+                        properties.getMaxOutputTokens(),
                         "application/json",
                         responseSchema()
                 )
@@ -40,15 +51,24 @@ public class GeminiClient {
 
         try {
             GeminiGenerateResponse response = restClient.post()
-                    .uri("/v1beta/models/{model}:generateContent", properties.getModel())
-                    .header("x-goog-api-key", properties.getApiKey())
+                    .uri(
+                            "/v1beta/models/{model}:generateContent",
+                            properties.getModel()
+                    )
+                    .header(
+                            "x-goog-api-key",
+                            properties.getApiKey()
+                    )
                     .body(request)
                     .retrieve()
                     .body(GeminiGenerateResponse.class);
 
             return extractText(response);
+
         } catch (RestClientException | IllegalStateException exception) {
-            throw new BaseException(ConsultationSummaryErrorCode.GEMINI_SUMMARY_FAILED);
+            throw new BaseException(
+                    ConsultationSummaryErrorCode.GEMINI_SUMMARY_FAILED
+            );
         }
     }
 
@@ -63,14 +83,36 @@ public class GeminiClient {
     private String extractText(GeminiGenerateResponse response) {
         if (response == null
                 || response.candidates() == null
-                || response.candidates().isEmpty()
-                || response.candidates().getFirst().content() == null
-                || response.candidates().getFirst().content().parts() == null
-                || response.candidates().getFirst().content().parts().isEmpty()) {
+                || response.candidates().isEmpty()) {
             throw new IllegalStateException("Gemini 응답 본문이 비어 있습니다.");
         }
 
-        String text = response.candidates().getFirst().content().parts().getFirst().text();
+        GeminiCandidate candidate = response.candidates().getFirst();
+        if (!isBlank(candidate.finishReason())
+                && !"STOP".equals(candidate.finishReason())) {
+            log.warn(
+                    "Gemini response did not finish normally. finishReason={}",
+                    candidate.finishReason()
+            );
+            throw new IllegalStateException(
+                    "Gemini response did not finish normally: "
+                            + candidate.finishReason()
+            );
+        }
+
+        if (candidate.content() == null
+                || candidate.content().parts() == null
+                || candidate.content().parts().isEmpty()) {
+            throw new IllegalStateException("Gemini 응답 본문이 비어 있습니다.");
+        }
+
+        String text = candidate.content()
+                .parts()
+                .stream()
+                .filter(Objects::nonNull)
+                .map(GeminiResponsePart::text)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining());
         if (isBlank(text)) {
             throw new IllegalStateException("Gemini 응답 텍스트가 비어 있습니다.");
         }
@@ -91,7 +133,14 @@ public class GeminiClient {
                         ),
                         "instructions", Map.of(
                                 "type", "ARRAY",
-                                "items", Map.of("type", "STRING"),
+                                "items", Map.of(
+                                        "type", "OBJECT",
+                                        "properties", Map.of(
+                                                "content", Map.of("type", "STRING"),
+                                                "icon", Map.of("type", "INTEGER")
+                                        ),
+                                        "required", List.of("content", "icon")
+                                ),
                                 "description", "의료진이 실제로 안내한 지시 및 후속조치 목록"
                         )
                 ),
@@ -130,7 +179,10 @@ public class GeminiClient {
     private record GeminiGenerateResponse(List<GeminiCandidate> candidates) {
     }
 
-    private record GeminiCandidate(GeminiResponseContent content) {
+    private record GeminiCandidate(
+            GeminiResponseContent content,
+            String finishReason
+    ) {
     }
 
     private record GeminiResponseContent(List<GeminiResponsePart> parts) {

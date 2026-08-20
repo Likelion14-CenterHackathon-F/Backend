@@ -2,11 +2,21 @@ package com.centerton.centerton.global.exception;
 
 
 import com.centerton.centerton.global.response.code.BaseResponseCode;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 public class BaseException extends RuntimeException {
-    private BaseResponseCode baseResponseCode;
+    private final BaseResponseCode baseResponseCode;
+
+    public BaseException(BaseResponseCode baseResponseCode) {
+        this.baseResponseCode = baseResponseCode;
+    }
+
+    public BaseException(
+            BaseResponseCode baseResponseCode,
+            Throwable cause
+    ) {
+        super(cause);
+        this.baseResponseCode = baseResponseCode;
+    }
 }
