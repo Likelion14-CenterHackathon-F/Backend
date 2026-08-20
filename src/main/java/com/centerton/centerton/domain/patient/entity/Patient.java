@@ -2,6 +2,7 @@ package com.centerton.centerton.domain.patient.entity;
 
 import com.centerton.centerton.domain.patient.entity.enums.Gender;
 import com.centerton.centerton.domain.patient.entity.enums.Language;
+import com.centerton.centerton.domain.patient.entity.enums.PatientRole;
 import com.centerton.centerton.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -58,6 +59,11 @@ public class Patient extends BaseEntity {
 
     @Column(name = "timezone_id")
     private String timezoneId;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 20, columnDefinition = "varchar(20) default 'DEFAULT'")
+    private PatientRole role = PatientRole.DEFAULT;
 
     public void updateSettings(Language language, String nationality, String timezoneId) {
         if (language != null) {
