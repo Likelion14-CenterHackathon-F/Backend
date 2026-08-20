@@ -91,7 +91,20 @@ public class GeminiClient {
                         ),
                         "instructions", Map.of(
                                 "type", "ARRAY",
-                                "items", Map.of("type", "STRING"),
+                                "items", Map.of(
+                                        "type", "OBJECT",
+                                        "properties", Map.of(
+                                                "content", Map.of(
+                                                        "type", "STRING",
+                                                        "description", "제목과 내용을 줄바꿈으로 구분. 첫 줄이 제목, 나머지가 내용"
+                                                ),
+                                                "icon", Map.of(
+                                                        "type", "INTEGER",
+                                                        "description", "아이콘 번호 1~7"
+                                                )
+                                        ),
+                                        "required", List.of("content", "icon")
+                                ),
                                 "description", "의료진이 실제로 안내한 지시 및 후속조치 목록"
                         )
                 ),
