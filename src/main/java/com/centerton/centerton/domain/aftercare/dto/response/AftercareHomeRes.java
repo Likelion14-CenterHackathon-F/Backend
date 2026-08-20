@@ -32,11 +32,7 @@ public record AftercareHomeRes(
     }
 
     private static String resolvePatientName(AftercareCase aftercareCase) {
-        var patient = aftercareCase.getPatient();
-        if ("KR".equals(patient.getNationality())) {
-            return patient.getName();
-        }
-        return patient.getEnglishName() != null ? patient.getEnglishName() : patient.getName();
+        return aftercareCase.getPatient().getName();
     }
 
     public record AftercareProgress(
