@@ -20,7 +20,7 @@ services:
       retries: 10
 
   backend:
-    image: ${BACKEND_IMAGE:-commatack/likelion}:latest
+    image: ${BACKEND_IMAGE:-oroi2009/likelion}:latest
     container_name: likelion
     depends_on:
       postgres:
