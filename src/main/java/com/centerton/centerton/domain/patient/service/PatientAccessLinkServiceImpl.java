@@ -2,6 +2,7 @@ package com.centerton.centerton.domain.patient.service;
 
 import com.centerton.centerton.domain.patient.entity.Patient;
 import com.centerton.centerton.domain.patient.entity.PatientAccessLink;
+import com.centerton.centerton.domain.patient.entity.enums.PatientRole;
 import com.centerton.centerton.domain.patient.exception.PatientAccessLinkAuthenticationInvalidException;
 import com.centerton.centerton.domain.patient.exception.PatientAccessLinkExpirationInvalidException;
 import com.centerton.centerton.domain.patient.exception.PatientAccessLinkExpiredException;
@@ -31,6 +32,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.DateTimeException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Base64;
@@ -86,9 +88,7 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
         }
 
         Patient patient = accessLink.getPatient();
-        if (!patient.getBirthDate().equals(request.birthDate())) {
-            throw new PatientBirthDateNotMatchedException();
-        }
+        validateBirthDate(patient, request.birthDate());
 
         applySettings(patient, request);
 
@@ -100,8 +100,20 @@ public class PatientAccessLinkServiceImpl implements PatientAccessLinkService {
     }
 
     private void validateVerifyRequest(PatientAccessLinkVerifyReq request) {
-        if (request == null || !StringUtils.hasText(request.token()) || request.birthDate() == null) {
+        if (request == null || !StringUtils.hasText(request.token())) {
             throw new PatientAccessLinkAuthenticationInvalidException();
+        }
+    }
+
+    private void validateBirthDate(Patient patient, LocalDate birthDate) {
+        if (patient.getRole() == PatientRole.MASTER) {
+            return;
+        }
+        if (birthDate == null) {
+            throw new PatientAccessLinkAuthenticationInvalidException();
+        }
+        if (!patient.getBirthDate().equals(birthDate)) {
+            throw new PatientBirthDateNotMatchedException();
         }
     }
 
