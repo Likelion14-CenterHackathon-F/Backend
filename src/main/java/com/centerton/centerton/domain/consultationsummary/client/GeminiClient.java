@@ -136,8 +136,14 @@ public class GeminiClient {
                                 "items", Map.of(
                                         "type", "OBJECT",
                                         "properties", Map.of(
-                                                "content", Map.of("type", "STRING"),
-                                                "icon", Map.of("type", "INTEGER")
+                                                "content", Map.of(
+                                                        "type", "STRING",
+                                                        "description", "제목과 내용을 줄바꿈으로 구분. 첫 줄이 제목, 나머지가 내용"
+                                                ),
+                                                "icon", Map.of(
+                                                        "type", "INTEGER",
+                                                        "description", "아이콘 번호 1~7"
+                                                )
                                         ),
                                         "required", List.of("content", "icon")
                                 ),

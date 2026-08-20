@@ -9,6 +9,7 @@ import java.time.OffsetDateTime;
 
 public record AftercareHomeRes(
         Long caseId,
+        String patientName,
         AftercareProgress aftercareProgress,
         ProcedureSummary procedure,
         ConsultationAppointment consultationAppointment
@@ -23,10 +24,15 @@ public record AftercareHomeRes(
 
         return new AftercareHomeRes(
                 aftercareCase.getCaseId(),
+                resolvePatientName(aftercareCase),
                 AftercareProgress.from(aftercareCase, currentDay),
                 ProcedureSummary.from(aftercareCase.getProcedureRecord()),
                 ConsultationAppointment.from(appointment)
         );
+    }
+
+    private static String resolvePatientName(AftercareCase aftercareCase) {
+        return aftercareCase.getPatient().getName();
     }
 
     public record AftercareProgress(
