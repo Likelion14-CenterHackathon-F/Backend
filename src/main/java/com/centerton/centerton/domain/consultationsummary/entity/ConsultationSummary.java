@@ -1,6 +1,7 @@
 package com.centerton.centerton.domain.consultationsummary.entity;
 
 import com.centerton.centerton.domain.consultation.entity.ConsultationSession;
+import com.centerton.centerton.domain.consultationsummary.entity.enums.InstructionIcon;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -97,12 +98,14 @@ public class ConsultationSummary {
 
     public void addInstruction(
             String content,
+            InstructionIcon icon,
             int sortOrder
     ) {
         instructions.add(
                 SummaryInstruction.create(
                         this,
                         content,
+                        icon,
                         sortOrder
                 )
         );

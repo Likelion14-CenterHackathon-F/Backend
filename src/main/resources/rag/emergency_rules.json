@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-15-mvp-rules-v3.1",
+  "version": "2026-08-20-mvp-rules-v3.2",
   "description": "LLM/RAG보다 먼저 실행하는 의료 안전 hard-stop 룰셋입니다.",
   "normalization": {
     "case": "lower",
@@ -37,7 +37,13 @@
       "id": "RISK-01",
       "name": "suspected_infection_discharge",
       "scope": "common_all_procedures",
-      "trigger_keywords": ["고름", "악취", "냄새나요", "썩은 냄새", "진물이 노래요"],
+      "trigger_keywords": [
+        "고름",
+        "악취",
+        "냄새나요",
+        "썩은 냄새",
+        "진물이 노래요"
+      ],
       "trigger_patterns": [
         "(?:노란|노란색|누런|황색|녹색|초록색)\\s*(?:액체|진물|분비물|고름)"
       ],
@@ -47,16 +53,32 @@
       ],
       "risk_level": "high",
       "match_policy": "any_keyword_or_pattern",
-      "system_actions": ["stop_chatbot", "activate_global_medical_summary_report", "notify_hospital_cs", "show_nearest_hospital_cta"],
-      "frontend_message": "감염 위험이 의심되는 증상입니다. 즉시 현지의 가까운 응급실 또는 병원에 방문해 주세요. 정확한 처치를 위해 화면의 [글로벌 의료요약리포트]를 현지 의료진에게 제시해 주시기 바랍니다.",
+      "system_actions": [
+        "stop_chatbot",
+        "activate_global_medical_summary_report",
+        "notify_hospital_cs",
+        "show_nearest_hospital_cta",
+        "offer_immediate_video_consult"
+      ],
+      "frontend_message": "감염 위험이 의심되는 증상입니다. 즉시 현지의 가까운 응급실 또는 병원에 방문해 주세요. 정확한 처치를 위해 화면의 [글로벌 의료요약리포트]를 현지 의료진에게 제시해 주시기 바랍니다. 현지 진료를 받으신 뒤에는 빠른 시일 내에 앱에서 시술 병원 의료진과 화상 상담을 진행해 주세요. 시술 내용과 현재 경과를 공유하면 이후 관리에 도움이 됩니다.",
       "llm_policy": "block_freeform_generation",
-      "source_refs": ["NHS/GOSH surgical wound infection signs", "UCLH surgical wound infection signs"]
+      "source_refs": [
+        "NHS/GOSH surgical wound infection signs",
+        "UCLH surgical wound infection signs"
+      ]
     },
     {
       "id": "RISK-02",
       "name": "fever_or_chills_after_procedure",
       "scope": "common_all_procedures",
-      "trigger_keywords": ["38도", "38.0", "38.5", "39도", "오한이 나요", "식은땀이 나요"],
+      "trigger_keywords": [
+        "38도",
+        "38.0",
+        "38.5",
+        "39도",
+        "오한이 나요",
+        "식은땀이 나요"
+      ],
       "trigger_patterns": [
         "(?:38(?:\\.\\d)?|39(?:\\.\\d)?|40(?:\\.\\d)?)\\s*도",
         "열\\s*이?\\s*펄\\s*펄",
@@ -76,16 +98,31 @@
       ],
       "risk_level": "high",
       "match_policy": "any_keyword_or_pattern",
-      "system_actions": ["stop_chatbot", "activate_global_medical_summary_report", "notify_hospital_cs", "show_nearest_hospital_cta"],
-      "frontend_message": "고열 또는 오한은 빠른 확인이 필요할 수 있습니다. 즉시 현지 병원에 방문하시고, [글로벌 의료요약리포트]를 현지 의료진에게 전달해 주세요.",
+      "system_actions": [
+        "stop_chatbot",
+        "activate_global_medical_summary_report",
+        "notify_hospital_cs",
+        "show_nearest_hospital_cta",
+        "offer_immediate_video_consult"
+      ],
+      "frontend_message": "고열 또는 오한은 빠른 확인이 필요할 수 있습니다. 즉시 현지 병원에 방문하시고, [글로벌 의료요약리포트]를 현지 의료진에게 전달해 주세요. 현지 진료를 받으신 뒤에는 빠른 시일 내에 앱에서 시술 병원 의료진과 화상 상담을 진행해 주세요. 시술 내용과 현재 경과를 공유하면 이후 관리에 도움이 됩니다.",
       "llm_policy": "block_freeform_generation",
-      "source_refs": ["NHS/GOSH surgical wound infection signs", "Guy's and St Thomas' surgical wound guidance"]
+      "source_refs": [
+        "NHS/GOSH surgical wound infection signs",
+        "Guy's and St Thomas' surgical wound guidance"
+      ]
     },
     {
       "id": "RISK-03",
       "name": "uncontrolled_bleeding",
       "scope": "rhinoplasty_or_surgery",
-      "trigger_keywords": ["피가 안 멈춰요", "지혈이 안", "피가 계속", "피나요 계속", "피가 줄줄"],
+      "trigger_keywords": [
+        "피가 안 멈춰요",
+        "지혈이 안",
+        "피가 계속",
+        "피나요 계속",
+        "피가 줄줄"
+      ],
       "trigger_patterns": [
         "피(?!부)\\s*(?:가|는|나)\\s*.{0,10}(?:안\\s*멈|멈추지\\s*않|계속|줄줄|많이|심해)",
         "출혈\\s*이?\\s*.{0,10}(?:안\\s*멈|멈추지\\s*않|계속|많이|심해)",
@@ -99,28 +136,61 @@
       ],
       "risk_level": "high",
       "match_policy": "any_keyword_or_pattern",
-      "system_actions": ["stop_chatbot", "activate_global_medical_summary_report", "notify_hospital_cs", "show_emergency_cta"],
-      "frontend_message": "지혈이 되지 않는 경우 즉각적인 처치가 필요할 수 있습니다. 지체하지 말고 현지 응급실 또는 병원으로 이동해 주세요. [글로벌 의료요약리포트]를 다운로드하여 현지 의료진에게 보여주세요.",
+      "system_actions": [
+        "stop_chatbot",
+        "activate_global_medical_summary_report",
+        "notify_hospital_cs",
+        "show_emergency_cta",
+        "offer_immediate_video_consult"
+      ],
+      "frontend_message": "지혈이 되지 않는 경우 즉각적인 처치가 필요할 수 있습니다. 지체하지 말고 현지 응급실 또는 병원으로 이동해 주세요. [글로벌 의료요약리포트]를 다운로드하여 현지 의료진에게 보여주세요. 현지 진료를 받으신 뒤에는 빠른 시일 내에 앱에서 시술 병원 의료진과 화상 상담을 진행해 주세요. 시술 내용과 현재 경과를 공유하면 이후 관리에 도움이 됩니다.",
       "llm_policy": "block_freeform_generation",
-      "source_refs": ["Post-operative wound care guidance"]
+      "source_refs": [
+        "Post-operative wound care guidance"
+      ]
     },
     {
       "id": "RISK-04",
       "name": "severe_pain_necrosis_or_open_wound",
       "scope": "common_all_procedures",
-      "trigger_keywords": ["극심한 통증", "참을 수 없는 통증", "검게 변", "까맣게 변", "괴사", "상처가 벌어", "실밥이 터", "피부가 죽"],
+      "trigger_keywords": [
+        "극심한 통증",
+        "참을 수 없는 통증",
+        "검게 변",
+        "까맣게 변",
+        "괴사",
+        "상처가 벌어",
+        "실밥이 터",
+        "피부가 죽"
+      ],
       "risk_level": "high",
       "match_policy": "any_keyword",
-      "system_actions": ["stop_chatbot", "activate_global_medical_summary_report", "notify_hospital_cs", "show_nearest_hospital_cta"],
-      "frontend_message": "상처 벌어짐, 피부색 변화, 극심한 통증은 빠른 진료가 필요한 신호일 수 있습니다. 즉시 현지 병원에 방문하시고 [글로벌 의료요약리포트]를 제시해 주세요.",
+      "system_actions": [
+        "stop_chatbot",
+        "activate_global_medical_summary_report",
+        "notify_hospital_cs",
+        "show_nearest_hospital_cta",
+        "offer_immediate_video_consult"
+      ],
+      "frontend_message": "상처 벌어짐, 피부색 변화, 극심한 통증은 빠른 진료가 필요한 신호일 수 있습니다. 즉시 현지 병원에 방문하시고 [글로벌 의료요약리포트]를 제시해 주세요. 현지 진료를 받으신 뒤에는 빠른 시일 내에 앱에서 시술 병원 의료진과 화상 상담을 진행해 주세요. 시술 내용과 현재 경과를 공유하면 이후 관리에 도움이 됩니다.",
       "llm_policy": "block_freeform_generation",
-      "source_refs": ["NHS/GOSH surgical wound infection signs", "UCLH wound care guidance"]
+      "source_refs": [
+        "NHS/GOSH surgical wound infection signs",
+        "UCLH wound care guidance"
+      ]
     },
     {
       "id": "RISK-05",
       "name": "breathing_or_vision_warning",
       "scope": "rhinoplasty_or_face_procedure",
-      "trigger_keywords": ["숨쉬기 힘들", "호흡곤란", "숨이 안 쉬", "시야가 흐", "눈이 안 보여", "눈 통증"],
+      "trigger_keywords": [
+        "숨쉬기 힘들",
+        "호흡곤란",
+        "숨이 안 쉬",
+        "시야가 흐",
+        "눈이 안 보여",
+        "눈 통증"
+      ],
       "trigger_patterns": [
         "(?<![가-힣])복시"
       ],
@@ -130,16 +200,30 @@
       ],
       "risk_level": "high",
       "match_policy": "any_keyword_or_pattern",
-      "system_actions": ["stop_chatbot", "activate_global_medical_summary_report", "notify_hospital_cs", "show_emergency_cta"],
-      "frontend_message": "호흡 곤란 또는 시야 이상은 즉시 확인이 필요한 증상입니다. 현지 응급실 또는 병원으로 바로 이동해 주세요. [글로벌 의료요약리포트]를 현지 의료진에게 보여주세요.",
+      "system_actions": [
+        "stop_chatbot",
+        "activate_global_medical_summary_report",
+        "notify_hospital_cs",
+        "show_emergency_cta",
+        "offer_immediate_video_consult"
+      ],
+      "frontend_message": "호흡 곤란 또는 시야 이상은 즉시 확인이 필요한 증상입니다. 현지 응급실 또는 병원으로 바로 이동해 주세요. [글로벌 의료요약리포트]를 현지 의료진에게 보여주세요. 현지 진료를 받으신 뒤에는 빠른 시일 내에 앱에서 시술 병원 의료진과 화상 상담을 진행해 주세요. 시술 내용과 현재 경과를 공유하면 이후 관리에 도움이 됩니다.",
       "llm_policy": "block_freeform_generation",
-      "source_refs": ["MVP clinical safety rule"]
+      "source_refs": [
+        "MVP clinical safety rule"
+      ]
     },
     {
       "id": "RISK-06",
       "name": "rapid_allergic_reaction",
       "scope": "common_all_procedures",
-      "trigger_keywords": ["입술이 부었", "두드러기", "숨 막혀", "알레르기 쇼크", "전신 발진"],
+      "trigger_keywords": [
+        "입술이 부었",
+        "두드러기",
+        "숨 막혀",
+        "알레르기 쇼크",
+        "전신 발진"
+      ],
       "trigger_patterns": [
         "(?<![가-힣])목\\s*이?\\s*(?:붓|부어|부었)"
       ],
@@ -148,46 +232,119 @@
       ],
       "risk_level": "high",
       "match_policy": "any_keyword_or_pattern",
-      "system_actions": ["stop_chatbot", "activate_global_medical_summary_report", "notify_hospital_cs", "show_emergency_cta"],
-      "frontend_message": "전신 알레르기 반응이 의심될 수 있습니다. 숨이 차거나 목·입술이 붓는 경우 즉시 현지 응급실로 이동해 주세요. [글로벌 의료요약리포트]를 현지 의료진에게 제시해 주세요.",
+      "system_actions": [
+        "stop_chatbot",
+        "activate_global_medical_summary_report",
+        "notify_hospital_cs",
+        "show_emergency_cta",
+        "offer_immediate_video_consult"
+      ],
+      "frontend_message": "전신 알레르기 반응이 의심될 수 있습니다. 숨이 차거나 목·입술이 붓는 경우 즉시 현지 응급실로 이동해 주세요. [글로벌 의료요약리포트]를 현지 의료진에게 제시해 주세요. 현지 진료를 받으신 뒤에는 빠른 시일 내에 앱에서 시술 병원 의료진과 화상 상담을 진행해 주세요. 시술 내용과 현재 경과를 공유하면 이후 관리에 도움이 됩니다.",
       "llm_policy": "block_freeform_generation",
-      "source_refs": ["MVP clinical safety rule"]
+      "source_refs": [
+        "MVP clinical safety rule"
+      ]
     },
     {
       "id": "RISK-07",
       "name": "filler_vascular_or_neurologic_warning",
       "scope": "dermal_filler_or_face_injection",
-      "trigger_keywords": ["필러 맞고 시야", "필러 맞고 눈", "필러 후 눈", "시야가 갑자기", "앞이 안 보여", "피부가 하얗게", "피부가 회색", "피부가 파랗게", "파랗게 변", "창백해졌", "한쪽 마비", "한쪽 힘이", "말이 어눌", "얼굴이 처져", "심한 두통", "갑자기 어지러"],
+      "trigger_keywords": [
+        "필러 맞고 시야",
+        "필러 맞고 눈",
+        "필러 후 눈",
+        "시야가 갑자기",
+        "앞이 안 보여",
+        "피부가 하얗게",
+        "피부가 회색",
+        "피부가 파랗게",
+        "파랗게 변",
+        "창백해졌",
+        "한쪽 마비",
+        "한쪽 힘이",
+        "말이 어눌",
+        "얼굴이 처져",
+        "심한 두통",
+        "갑자기 어지러"
+      ],
       "risk_level": "high",
       "match_policy": "any_keyword",
-      "system_actions": ["stop_chatbot", "activate_global_medical_summary_report", "notify_hospital_cs", "show_emergency_cta"],
-      "frontend_message": "필러 후 시야 이상, 피부가 하얗거나 파랗게 변하는 증상, 한쪽 힘 빠짐·말 어눌함은 즉시 진료가 필요한 신호일 수 있습니다. 지체하지 말고 현지 응급실 또는 시술 병원으로 바로 이동해 주세요.",
+      "system_actions": [
+        "stop_chatbot",
+        "activate_global_medical_summary_report",
+        "notify_hospital_cs",
+        "show_emergency_cta",
+        "offer_immediate_video_consult"
+      ],
+      "frontend_message": "필러 후 시야 이상, 피부가 하얗거나 파랗게 변하는 증상, 한쪽 힘 빠짐·말 어눌함은 즉시 진료가 필요한 신호일 수 있습니다. 지체하지 말고 현지 응급실 또는 병원으로 바로 이동해 주세요. [글로벌 의료요약리포트]를 현지 의료진에게 제시해 주세요. 필러 종류와 주입 부위 정보가 중요하므로, 현지 진료를 받으신 뒤에는 빠른 시일 내에 앱에서 시술 병원 의료진과 화상 상담을 진행해 주세요. 시술 내용과 현재 경과를 공유하면 이후 관리에 도움이 됩니다.",
       "llm_policy": "block_freeform_generation",
-      "source_refs": ["FDA dermal fillers soft tissue fillers", "ASPS dermal fillers risks and safety"]
+      "source_refs": [
+        "FDA dermal fillers soft tissue fillers",
+        "ASPS dermal fillers risks and safety"
+      ]
     },
     {
       "id": "RISK-08",
       "name": "botulinum_toxin_spread_warning",
       "scope": "botulinum_toxin_injection",
-      "trigger_keywords": ["보톡스 맞고 숨", "보툴리눔 맞고 숨", "삼키기 힘들", "삼킴 곤란", "목 넘기기 힘들", "말이 어눌", "발음이 어눌", "근육 힘이 빠", "온몸에 힘이", "호흡 문제"],
+      "trigger_keywords": [
+        "보톡스 맞고 숨",
+        "보툴리눔 맞고 숨",
+        "삼키기 힘들",
+        "삼킴 곤란",
+        "목 넘기기 힘들",
+        "말이 어눌",
+        "발음이 어눌",
+        "근육 힘이 빠",
+        "온몸에 힘이",
+        "호흡 문제"
+      ],
       "risk_level": "high",
       "match_policy": "any_keyword",
-      "system_actions": ["stop_chatbot", "activate_global_medical_summary_report", "notify_hospital_cs", "show_emergency_cta"],
-      "frontend_message": "보툴리눔 톡신 시술 후 숨쉬기 어렵거나 삼키기 어렵고, 말이 어눌하거나 근육 힘이 빠지는 증상은 즉시 확인이 필요합니다. 현지 응급실 또는 병원으로 바로 이동해 주세요.",
+      "system_actions": [
+        "stop_chatbot",
+        "activate_global_medical_summary_report",
+        "notify_hospital_cs",
+        "show_emergency_cta",
+        "offer_immediate_video_consult"
+      ],
+      "frontend_message": "보툴리눔 톡신 시술 후 숨쉬기 어렵거나 삼키기 어렵고, 말이 어눌하거나 근육 힘이 빠지는 증상은 즉시 확인이 필요합니다. 현지 응급실 또는 병원으로 바로 이동해 주세요. [글로벌 의료요약리포트]를 현지 의료진에게 제시해 주세요. 현지 진료를 받으신 뒤에는 빠른 시일 내에 앱에서 시술 병원 의료진과 화상 상담을 진행해 주세요. 시술 내용과 현재 경과를 공유하면 이후 관리에 도움이 됩니다.",
       "llm_policy": "block_freeform_generation",
-      "source_refs": ["ASPS botulinum toxin risks and safety", "FDA dermal filler do's and don'ts"]
+      "source_refs": [
+        "ASPS botulinum toxin risks and safety",
+        "FDA dermal filler do's and don'ts"
+      ]
     },
     {
       "id": "RISK-09",
       "name": "laser_severe_skin_reaction",
       "scope": "laser_skin_treatment",
-      "trigger_keywords": ["레이저 후 물집", "과도한 물집", "참기 힘든 통증", "심한 붉음", "심하게 붓", "화상 같", "피부손상", "피부가 벗겨", "진물이 나"],
+      "trigger_keywords": [
+        "레이저 후 물집",
+        "과도한 물집",
+        "참기 힘든 통증",
+        "심한 붉음",
+        "심하게 붓",
+        "화상 같",
+        "피부손상",
+        "피부가 벗겨",
+        "진물이 나"
+      ],
       "risk_level": "high",
       "match_policy": "any_keyword",
-      "system_actions": ["stop_chatbot", "activate_global_medical_summary_report", "notify_hospital_cs", "show_nearest_hospital_cta"],
-      "frontend_message": "레이저 시술 후 참기 힘든 통증, 과도한 물집, 심한 붉음·붓기, 피부손상은 임의 처치보다 빠른 확인이 필요합니다. 치료받은 병의원에 즉시 연락하거나 가까운 병원에 방문해 주세요.",
+      "system_actions": [
+        "stop_chatbot",
+        "activate_global_medical_summary_report",
+        "notify_hospital_cs",
+        "show_nearest_hospital_cta",
+        "offer_immediate_video_consult"
+      ],
+      "frontend_message": "레이저 시술 후 참기 힘든 통증, 과도한 물집, 심한 붉음·붓기, 피부손상은 임의 처치보다 빠른 확인이 필요합니다. 치료받은 병의원에 즉시 연락하거나 가까운 병원에 방문해 주세요. [글로벌 의료요약리포트]를 현지 의료진에게 제시해 주세요. 현지 진료를 받으신 뒤에는 빠른 시일 내에 앱에서 시술 병원 의료진과 화상 상담을 진행해 주세요. 시술 내용과 현재 경과를 공유하면 이후 관리에 도움이 됩니다.",
       "llm_policy": "block_freeform_generation",
-      "source_refs": ["MFDS medical laser safety guide", "MFDS medical laser skin treatment device information"]
+      "source_refs": [
+        "MFDS medical laser safety guide",
+        "MFDS medical laser skin treatment device information"
+      ]
     }
   ]
 }

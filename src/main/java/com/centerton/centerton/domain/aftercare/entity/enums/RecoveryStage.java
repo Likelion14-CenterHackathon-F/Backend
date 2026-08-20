@@ -9,9 +9,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum RecoveryStage {
 
-    EARLY("회복 초기"),
-    MIDDLE("회복 중기"),
-    STABLE("회복 안정기");
+    EARLY("회복 초기 단계"),
+    MIDDLE("회복 중기 단계"),
+    STABLE("회복 안정 단계");
 
     private final String value;
 
