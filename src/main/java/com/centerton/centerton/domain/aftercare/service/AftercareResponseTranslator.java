@@ -122,3 +122,4 @@ public class AftercareResponseTranslator {
             throw new BaseException(AftercareErrorCode.TRANSLATION_FAILED);
         }
     }
+}
