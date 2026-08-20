@@ -2,6 +2,7 @@ package com.centerton.centerton.domain.consultationsummary.service;
 
 import com.centerton.centerton.domain.consultation.entity.TranscriptSegment;
 import com.centerton.centerton.domain.consultationsummary.client.GeminiClient;
+import com.centerton.centerton.domain.consultationsummary.entity.enums.InstructionIcon;
 import com.centerton.centerton.domain.consultationsummary.exception.ConsultationSummaryErrorCode;
 import com.centerton.centerton.global.exception.BaseException;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +11,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 @Slf4j
@@ -395,14 +396,24 @@ public class GeminiSummaryService {
             5. instructions에는 의료진이 실제로 말한 지시사항과 후속조치만 작성합니다.
             6. instructions는 최대 10개입니다.
             7. 각 instruction 전체는 300자를 넘지 않습니다.
-            8. 각 instruction은 반드시 "짧은 제목\\n상세 내용" 형식으로 작성합니다.
+            8. 각 instruction의 content는 반드시 "짧은 제목\\n상세 내용" 형식으로 작성합니다.
             9. 제목은 환자가 한눈에 내용을 알 수 있는 짧은 명사형으로 작성합니다.
                예: 처방약 복용, 냉찜질, 세안 주의, 경과 관찰, 다음 상담
             10. 제목과 상세 내용 모두 상담 기록에 실제로 있는 내용만 사용합니다.
-            11. 불명확하거나 기록에 없는 내용은 추측하지 않습니다.
-            12. 인사, 반복 발화, 자막 오류로 보이는 단편은 제외합니다.
-            13. JSON 객체 하나만 반환하세요.
-            14. 마크다운 코드 블록이나 추가 설명을 사용하지 마세요.
+            11. 각 instruction에는 icon 번호를 함께 반환합니다.
+            12. icon은 제목과 상세 내용을 함께 읽고 아래 목록에서
+                가장 알맞은 번호 하나를 고릅니다.
+            """
+                + InstructionIcon.promptGuide()
+                + """
+
+            13. 1~6 중 맞는 항목이 없으면 7을 사용합니다.
+                억지로 1~6 중에서 고르지 마세요.
+                예: 경과 관찰, 다음 상담 예약은 7 입니다.
+            14. 불명확하거나 기록에 없는 내용은 추측하지 않습니다.
+            15. 인사, 반복 발화, 자막 오류로 보이는 단편은 제외합니다.
+            16. JSON 객체 하나만 반환하세요.
+            17. 마크다운 코드 블록이나 추가 설명을 사용하지 마세요.
 
             """
                 + scope
@@ -413,8 +424,14 @@ public class GeminiSummaryService {
               "summary": "한국어 상담 요약",
               "patientConsultationDetails": "환자가 호소하거나 문의한 핵심 내용",
               "instructions": [
-                "짧은 제목\\n상담에서 실제로 언급된 상세 지시사항",
-                "짧은 제목\\n상담에서 실제로 언급된 상세 지시사항"
+                {
+                  "content": "짧은 제목\\n상담에서 실제로 언급된 상세 지시사항",
+                  "icon": 5
+                },
+                {
+                  "content": "짧은 제목\\n상담에서 실제로 언급된 상세 지시사항",
+                  "icon": 7
+                }
               ]
             }
 
@@ -457,20 +474,29 @@ public class GeminiSummaryService {
             5. patientConsultationDetails는 2000자 이하로 작성합니다.
             6. instructions는 최대 10개입니다.
             7. 각 instruction 전체는 300자를 넘지 않습니다.
-            8. 각 instruction은 반드시 "짧은 제목\\n상세 내용" 형식을 유지합니다.
+            8. 각 instruction의 content는 반드시 "짧은 제목\\n상세 내용" 형식을 유지합니다.
             9. 제목은 짧은 명사형으로 작성합니다.
                예: 처방약 복용, 냉찜질, 세안 주의, 경과 관찰, 다음 상담
-            10. 부분 요약에 없는 내용은 추측하지 않습니다.
-            11. JSON 객체 하나만 반환합니다.
-            12. JSON 앞뒤에 설명이나 마크다운을 작성하지 않습니다.
+            10. 각 instruction에는 icon 번호를 함께 반환합니다.
+                부분 요약에 적힌 아이콘 번호를 그대로 유지하고,
+                지시사항을 합친 경우에는 합쳐진 내용에 맞는 번호를 고릅니다.
+            """
+                + InstructionIcon.promptGuide()
+                + """
+
+            11. 1~6 중 맞는 항목이 없으면 7을 사용합니다.
+                억지로 1~6 중에서 고르지 마세요.
+            12. 부분 요약에 없는 내용은 추측하지 않습니다.
+            13. JSON 객체 하나만 반환합니다.
+            14. JSON 앞뒤에 설명이나 마크다운을 작성하지 않습니다.
 
             반환 형식:
             {
               "summary": "최종 한국어 상담 요약",
               "patientConsultationDetails": "최종 환자 상담 내용",
               "instructions": [
-                "짧은 제목\\n상세 내용",
-                "짧은 제목\\n상세 내용"
+                { "content": "짧은 제목\\n상세 내용", "icon": 2 },
+                { "content": "짧은 제목\\n상세 내용", "icon": 7 }
               ]
             }
 
@@ -507,11 +533,13 @@ public class GeminiSummaryService {
         if (summary.instructions().isEmpty()) {
             builder.append("- 없음\n");
         } else {
-            for (String instruction :
+            for (InstructionResult instruction :
                     summary.instructions()) {
 
                 builder.append("- ")
-                        .append(instruction)
+                        .append(instruction.content())
+                        .append("\n  아이콘: ")
+                        .append(instruction.icon().getCode())
                         .append('\n');
             }
         }
@@ -710,6 +738,8 @@ public class GeminiSummaryService {
                 - patientConsultationDetails를 반드시 포함하세요.
                 - instructions를 반드시 포함하세요.
                 - instructions가 없으면 빈 배열 []을 사용하세요.
+                - instructions의 각 항목은 content와 icon을 가진 객체입니다.
+                - icon은 1~7 사이의 숫자입니다.
                 """;
     }
 
@@ -762,8 +792,13 @@ public class GeminiSummaryService {
                         PATIENT_DETAILS_MAX_LENGTH
                 );
 
-        LinkedHashSet<String> uniqueInstructions =
-                new LinkedHashSet<>();
+        /*
+         * content 기준으로 중복을 제거한다.
+         * 같은 지시사항에 서로 다른 아이콘이 붙어 온 경우
+         * 먼저 등장한 쪽을 유지한다.
+         */
+        LinkedHashMap<String, InstructionResult> uniqueInstructions =
+                new LinkedHashMap<>();
 
         if (payload.instructions() != null) {
 
@@ -771,22 +806,31 @@ public class GeminiSummaryService {
                     .stream()
                     .filter(instruction ->
                             instruction != null
-                                    && !instruction.isBlank()
+                                    && instruction.content() != null
+                                    && !instruction.content().isBlank()
                     )
-                    .map(String::trim)
                     .map(instruction ->
-                            limit(
-                                    instruction,
-                                    INSTRUCTION_MAX_LENGTH
+                            new InstructionResult(
+                                    limit(
+                                            instruction.content().trim(),
+                                            INSTRUCTION_MAX_LENGTH
+                                    ),
+                                    InstructionIcon.fromCode(
+                                            instruction.icon()
+                                    )
                             )
                     )
-                    .forEach(
-                            uniqueInstructions::add
+                    .forEach(instruction ->
+                            uniqueInstructions.putIfAbsent(
+                                    instruction.content(),
+                                    instruction
+                            )
                     );
         }
 
-        List<String> instructions =
+        List<InstructionResult> instructions =
                 uniqueInstructions
+                        .values()
                         .stream()
                         .limit(INSTRUCTION_MAX_COUNT)
                         .toList();
@@ -850,14 +894,32 @@ public class GeminiSummaryService {
     private record GeminiSummaryPayload(
             String summary,
             String patientConsultationDetails,
-            List<String> instructions
+            List<GeminiInstruction> instructions
+    ) {
+    }
+
+    /**
+     * Gemini 가 반환하는 지시사항 한 건.
+     *
+     * <p>icon 은 1~7 이며, 번호가 없거나 목록에 없는 번호가 오면
+     * {@link InstructionIcon#fromCode}가 7(ETC)로 떨어뜨린다.
+     */
+    private record GeminiInstruction(
+            String content,
+            Integer icon
+    ) {
+    }
+
+    public record InstructionResult(
+            String content,
+            InstructionIcon icon
     ) {
     }
 
     public record SummaryResult(
             String summary,
             String patientConsultationDetails,
-            List<String> instructions
+            List<InstructionResult> instructions
     ) {
     }
 }

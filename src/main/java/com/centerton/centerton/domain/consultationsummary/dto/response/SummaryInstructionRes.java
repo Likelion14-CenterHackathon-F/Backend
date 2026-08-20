@@ -1,6 +1,7 @@
 package com.centerton.centerton.domain.consultationsummary.dto.response;
 
 import com.centerton.centerton.domain.consultationsummary.entity.SummaryInstruction;
+import com.centerton.centerton.domain.consultationsummary.entity.enums.InstructionIcon;
 import com.centerton.centerton.global.util.UtcDateTimeUtils;
 
 import java.time.OffsetDateTime;
@@ -9,6 +10,7 @@ public record SummaryInstructionRes(
         Long instructionId,
         String title,
         String content,
+        Integer icon,
         Integer sortOrder,
         Boolean patientCompleted,
         OffsetDateTime completedAt
@@ -26,6 +28,7 @@ public record SummaryInstructionRes(
                 instruction.getInstructionId(),
                 parsed.title(),
                 parsed.content(),
+                iconCode(instruction.getIcon()),
                 instruction.getSortOrder(),
                 instruction.getPatientCompleted(),
                 UtcDateTimeUtils.toUtcOffset(
@@ -45,12 +48,27 @@ public record SummaryInstructionRes(
                 instruction.getInstructionId(),
                 parsed.title(),
                 parsed.content(),
+                iconCode(instruction.getIcon()),
                 instruction.getSortOrder(),
                 instruction.getPatientCompleted(),
                 UtcDateTimeUtils.toUtcOffset(
                         instruction.getCompletedAt()
                 )
         );
+    }
+
+    /*
+     * 아이콘은 번역 대상이 아니라 화면 표시용 번호이므로
+     * 언어와 무관하게 저장된 값을 그대로 내려준다.
+     *
+     * 아이콘 도입 이전에 생성된 요약은 컬럼이 비어 있다.
+     * 클라이언트가 null 을 따로 처리하지 않아도 되도록
+     * 이 경우에도 7(해당 없음)로 내려준다.
+     */
+    private static Integer iconCode(InstructionIcon icon) {
+        return icon == null
+                ? InstructionIcon.ETC.getCode()
+                : icon.getCode();
     }
 
     private static ParsedInstruction parseInstruction(

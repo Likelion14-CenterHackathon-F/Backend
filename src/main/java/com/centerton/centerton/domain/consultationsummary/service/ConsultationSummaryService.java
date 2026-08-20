@@ -126,8 +126,12 @@ public class ConsultationSummaryService {
              index < result.instructions().size();
              index++) {
 
+            GeminiSummaryService.InstructionResult instruction =
+                    result.instructions().get(index);
+
             summary.addInstruction(
-                    result.instructions().get(index),
+                    instruction.content(),
+                    instruction.icon(),
                     index + 1
             );
         }
